@@ -484,8 +484,18 @@ def main():
     parser.add_argument("--idle-threshold", type=float, default=120.0, help="Idle AFK threshold in seconds")
     parser.add_argument("--sync-interval", type=float, default=3.0, help="Sync interval in seconds (default: 3.0s)")
     parser.add_argument("--raw-mode", action="store_true", default=True, help="Record 100% raw details without filtering")
+    parser.add_argument("--silent", action="store_true", default=False, help="Chạy ẩn hoàn toàn dưới nền Windows (không hiện cửa sổ console)")
 
     args = parser.parse_args()
+
+    # Hide console window if --silent flag is provided
+    if args.silent and sys.platform == "win32":
+        try:
+            hwnd_console = ctypes.windll.kernel32.GetConsoleWindow()
+            if hwnd_console:
+                ctypes.windll.user32.ShowWindow(hwnd_console, 0)
+        except Exception:
+            pass
 
     tracker = StandaloneTracker(
         server_url=args.server_url,

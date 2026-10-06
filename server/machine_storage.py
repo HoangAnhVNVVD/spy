@@ -23,7 +23,11 @@ class MachineStorageManager:
 
     def __init__(self, base_dir: Optional[str | Path] = None):
         if base_dir is None:
-            base_dir = os.getenv("STORAGE_DIR", "./data/machines")
+            # Auto-detect if Railway Persistent Volume /app/data exists
+            if Path("/app/data").exists() and Path("/app/data").is_dir():
+                base_dir = os.getenv("STORAGE_DIR", "/app/data/machines")
+            else:
+                base_dir = os.getenv("STORAGE_DIR", "./data/machines")
         self.base_dir = Path(base_dir)
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
@@ -280,6 +284,17 @@ class MachineStorageManager:
                         pass
         results.sort(key=lambda x: (1 if x.get("is_online") else 0, x.get("last_updated", "")), reverse=True)
         return results
+
+    def delete_machine(self, client_id: str) -> bool:
+        """Delete a machine's partitioned disk directory."""
+        safe_name = self.sanitize_client_id(client_id)
+        machine_dir = self.base_dir / safe_name
+        if machine_dir.exists():
+            import shutil
+            shutil.rmtree(machine_dir, ignore_errors=True)
+            return True
+        return False
+
 
 
 # Singleton instance

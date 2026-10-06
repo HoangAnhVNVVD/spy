@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from server.auth import optional_auth_for_reads
+from server.auth import optional_auth_for_reads, require_api_key
 from server.machine_storage import machine_storage
 
 router = APIRouter(prefix="/api/v1/machines", tags=["Machines"])
@@ -78,3 +78,16 @@ def get_machine_disk_logs(
         "total_lines": len(lines),
         "lines": [line.strip() for line in lines],
     }
+
+
+@router.delete(
+    "/{client_id}",
+    dependencies=[Depends(require_api_key)],
+)
+def delete_machine_partition(client_id: str):
+    """Delete a machine's partitioned disk directory (requires API key)."""
+    success = machine_storage.delete_machine(client_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Machine '{client_id}' not found on disk")
+    return {"status": "deleted", "client_id": client_id}
+
