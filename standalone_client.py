@@ -373,8 +373,8 @@ class StandaloneTracker:
 
 def main():
     parser = argparse.ArgumentParser(description="Windows Activity Tracker Standalone Client")
-    parser.add_argument("--server-url", type=str, default="http://localhost:8000", help="Railway server URL")
-    parser.add_argument("--api-token", type=str, default="default-secret-token", help="Bearer API Token")
+    parser.add_argument("--server-url", type=str, default="https://spy-production-8aaa.up.railway.app", help="Railway server URL")
+    parser.add_argument("--api-token", type=str, default="hoanganh", help="Bearer API Token")
     parser.add_argument("--client-id", type=str, default="", help="Client ID identifier")
     parser.add_argument("--poll-interval", type=float, default=1.0, help="Polling interval in seconds")
     parser.add_argument("--idle-threshold", type=float, default=120.0, help="Idle AFK threshold in seconds")
