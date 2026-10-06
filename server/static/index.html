@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Windows Activity Tracker | Productivity Dashboard</title>
   <link rel="stylesheet" href="/static/styles.css" />
-  <!-- Chart.js via CDN for responsive charts -->
+  
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <div class="app-layout">
-    <!-- Top Navigation Header -->
+    
     <header class="navbar">
       <div class="nav-brand">
         <div class="logo-icon">⏱️</div>
@@ -46,9 +46,9 @@
       </div>
     </header>
 
-    <!-- Main Content Container -->
+    
     <main class="dashboard-content">
-      <!-- Metric Cards Grid -->
+      
       <section class="metrics-grid">
         <div class="metric-card active-card">
           <div class="card-icon">⚡</div>
@@ -87,7 +87,7 @@
         </div>
       </section>
 
-      <!-- Live Taskbar Applications (Updated every 3 seconds) -->
+      
       <section class="content-card live-taskbar-section" style="margin-bottom: 2rem; border: 1px solid rgba(59, 130, 246, 0.4); background: rgba(15, 23, 42, 0.85); box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);">
         <div class="card-header table-header" style="border-bottom: 1px solid rgba(59, 130, 246, 0.25); padding-bottom: 0.75rem;">
           <div style="display:flex; align-items:center; gap: 10px;">
@@ -117,9 +117,9 @@
         </div>
       </section>
 
-      <!-- Charts Section -->
+      
       <section class="charts-row">
-        <!-- Hourly Activity Timeline -->
+        
         <div class="chart-card timeline-card">
           <div class="card-header">
             <h3>Hourly Activity Timeline</h3>
@@ -130,7 +130,7 @@
           </div>
         </div>
 
-        <!-- Category Doughnut Chart -->
+        
         <div class="chart-card category-card">
           <div class="card-header">
             <h3>Category Breakdown</h3>
@@ -142,7 +142,7 @@
         </div>
       </section>
 
-      <!-- Top Applications Ranking -->
+      
       <section class="two-columns">
         <div class="content-card top-apps-card">
           <div class="card-header">
@@ -154,7 +154,7 @@
           </div>
         </div>
 
-        <!-- Privacy Status Card -->
+        
         <div class="content-card privacy-info-card">
           <div class="card-header">
             <h3>Privacy & Redaction Protection</h3>
@@ -172,7 +172,7 @@
         </div>
       </section>
 
-      <!-- Connected Machines & Disk Storage -->
+      
       <section class="content-card table-section" style="margin-bottom: 2rem;">
         <div class="card-header table-header">
           <div>
@@ -202,7 +202,7 @@
         </div>
       </section>
 
-      <!-- 🛡️ Trung Tâm An Ninh Mạng & Săn Tìm Mối Đe Dọa (Cybersecurity & Forensic Center) -->
+      
       <section class="content-card security-section" id="securitySection" style="margin-bottom: 2rem; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(15, 23, 42, 0.88); box-shadow: 0 4px 24px rgba(239, 68, 68, 0.12);">
         <div class="card-header table-header" style="flex-wrap: wrap; gap: 12px;">
           <div>
@@ -229,21 +229,21 @@
           </div>
         </div>
 
-        <!-- Security Sub-Tabs -->
+        
         <div class="security-subtabs" style="display: flex; gap: 10px; padding: 0.75rem 1.25rem; background: rgba(30, 41, 59, 0.5); border-bottom: 1px solid rgba(51, 65, 85, 0.6);">
           <button class="sec-tab-btn active" data-sectab="alerts">🚨 Cảnh Báo IOA / IOC (<span id="alertCountBadge">0</span>)</button>
           <button class="sec-tab-btn" data-sectab="playbook">📋 Quy Trình 20 Bước Phòng Thủ</button>
           <button class="sec-tab-btn" data-sectab="knowledge">📚 Kho Tri Thức 20 Chủ Đề An Ninh</button>
         </div>
 
-        <!-- Subtab 1: Alerts & Threats -->
+        
         <div id="secTabAlerts" class="sec-tab-content" style="padding: 1.25rem;">
           <div id="securityAlertsList" style="display: flex; flex-direction: column; gap: 10px;">
             <p class="empty-state">Đang quét telemetry để phát hiện dấu hiệu bất thường...</p>
           </div>
         </div>
 
-        <!-- Subtab 2: 20-Step Defensive Playbook -->
+        
         <div id="secTabPlaybook" class="sec-tab-content" style="display: none; padding: 1.25rem;">
           <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <span style="font-size: 0.9rem; color: #94a3b8;">Tiêu chuẩn điều tra sự cố số hóa theo 4 giai đoạn: Nhận diện &rarr; Mở rộng &rarr; Ngăn chặn &rarr; Phục hồi</span>
@@ -254,7 +254,7 @@
           </div>
         </div>
 
-        <!-- Subtab 3: Knowledge Base Browser -->
+        
         <div id="secTabKnowledge" class="sec-tab-content" style="display: none; padding: 1.25rem;">
           <div style="display: flex; gap: 12px; margin-bottom: 1rem; align-items: center;">
             <input type="text" id="kbSearchInput" placeholder="🔍 Tìm kiếm chủ đề (ví dụ: lifecycle, c2, persistence, collection, forensics...)" style="flex: 1; padding: 8px 14px; background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 8px; color: #fff;" />
@@ -266,7 +266,7 @@
         </div>
       </section>
 
-      <!-- Activity Log Table -->
+      
       <section class="content-card table-section">
         <div class="card-header table-header">
           <div>
@@ -300,13 +300,13 @@
       </section>
     </main>
 
-    <!-- Footer -->
+    
     <footer class="app-footer">
       <p>WinActivity Tracker &bull; Self-Hosted Personal Productivity &bull; Deployed on Railway</p>
     </footer>
   </div>
 
-  <!-- Disk Log Viewer Modal -->
+  
   <div id="diskLogModal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <div class="modal-header">
@@ -329,7 +329,7 @@
     </div>
   </div>
 
-  <!-- Forensic Evidence Modal -->
+  
   <div id="forensicModal" class="modal-overlay" style="display: none;">
     <div class="modal-card" style="max-width: 820px;">
       <div class="modal-header">

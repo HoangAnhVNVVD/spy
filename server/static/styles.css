@@ -38,7 +38,6 @@ body {
   min-height: 100vh;
 }
 
-/* Navbar */
 .navbar {
   display: flex;
   align-items: center;
@@ -146,7 +145,6 @@ body {
   background: #334155;
 }
 
-/* Dashboard Content */
 .dashboard-content {
   flex: 1;
   max-width: 1400px;
@@ -158,7 +156,6 @@ body {
   gap: 1.75rem;
 }
 
-/* Metric Cards */
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -214,7 +211,6 @@ body {
   color: var(--text-muted);
 }
 
-/* Charts Row */
 .charts-row {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -268,7 +264,6 @@ body {
   justify-content: center;
 }
 
-/* Two Columns Section */
 .two-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -281,7 +276,6 @@ body {
   }
 }
 
-/* Top Apps List */
 .app-rankings {
   display: flex;
   flex-direction: column;
@@ -330,7 +324,6 @@ body {
   transition: width 0.5s ease-out;
 }
 
-/* Privacy Details */
 .privacy-details {
   font-size: 0.9rem;
   color: #cbd5e1;
@@ -366,7 +359,6 @@ body {
   color: #f1f5f9;
 }
 
-/* Table Section */
 .table-header {
   margin-bottom: 1rem;
 }
@@ -444,7 +436,6 @@ body {
   text-align: center;
 }
 
-/* Footer */
 .app-footer {
   text-align: center;
   padding: 1.5rem;
@@ -454,7 +445,6 @@ body {
   background: rgba(15, 23, 42, 0.4);
 }
 
-/* Machine Selector Dropdown */
 .machine-select-container {
   display: flex;
   align-items: center;
@@ -491,7 +481,6 @@ body {
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
 }
 
-/* Table Action Buttons */
 .btn-action-view {
   background: rgba(59, 130, 246, 0.15);
   color: #60a5fa;
@@ -526,7 +515,6 @@ body {
   color: #ffffff;
 }
 
-/* Modal Overlay & Dialog */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -603,10 +591,6 @@ body {
   justify-content: space-between;
   align-items: center;
 }
-
-/* =========================================================================
-   Cybersecurity & Threat Hunting Center Styles
-   ========================================================================= */
 
 .security-subtabs {
   display: flex;
@@ -717,5 +701,3 @@ body {
   border-color: #38bdf8;
   transform: translateY(-2px);
 }
-
-

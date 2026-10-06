@@ -1,5 +1,3 @@
-/* Interactive Dashboard Logic */
-
 const urlParams = new URLSearchParams(window.location.search);
 let currentMachine = urlParams.get('machine') || '';
 let currentRange = 'today';
@@ -27,7 +25,6 @@ function handleAuthError(res) {
   }
 }
 
-// Compute start and end dates according to preset
 function getDateRange(range) {
   const now = new Date();
   let fromDate = new Date();
@@ -90,7 +87,6 @@ async function loadSummary() {
     }
     const data = await res.json();
 
-    // Populate KPI cards
     document.getElementById('valActiveTime').innerText = data.formatted_active_time || '0h 00m';
     document.getElementById('valProdScore').innerText = `Score: ${data.productivity_score}% productive`;
     document.getElementById('valIdleTime').innerText = data.formatted_idle_time || '0h 00m';
@@ -104,10 +100,8 @@ async function loadSummary() {
     document.getElementById('valTotalEvents').innerText = `${data.total_events} interval events`;
     document.getElementById('valAppsCount').innerText = data.top_apps ? data.top_apps.length : 0;
 
-    // Render Top Applications
     renderTopApps(data.top_apps || []);
 
-    // Render Category Donut
     renderCategoryChart(data.categories || []);
   } catch (e) {
     console.error('Error loading summary:', e);
@@ -154,7 +148,7 @@ function renderCategoryChart(categories) {
 
   const ctx = canvas.getContext('2d');
   const labels = categories.map(c => c.category);
-  const data = categories.map(c => Math.round(c.duration_seconds / 60)); // minutes
+  const data = categories.map(c => Math.round(c.duration_seconds / 60));
 
   const palette = [
     '#38bdf8', '#818cf8', '#34d399', '#f43f5e',
@@ -465,7 +459,6 @@ function setupEventListeners() {
     });
   }
 
-  // Modal event listeners
   const closeModalBtn = document.getElementById('closeModalBtn');
   const diskLogModal = document.getElementById('diskLogModal');
   if (closeModalBtn && diskLogModal) {
@@ -488,7 +481,6 @@ function setupEventListeners() {
     });
   }
 
-  // Security sub-tabs switcher
   document.querySelectorAll('.sec-tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       document.querySelectorAll('.sec-tab-btn').forEach(b => b.classList.remove('active'));
@@ -504,7 +496,6 @@ function setupEventListeners() {
     });
   });
 
-  // Security actions
   const btnRunTriage = document.getElementById('btnRunTriage');
   if (btnRunTriage) btnRunTriage.addEventListener('click', runAutomatedTriage);
 
@@ -548,7 +539,6 @@ async function loadMachines() {
     if (!res.ok) return;
     const machines = await res.json();
 
-    // Sync selector options
     populateMachineSelector(machines);
 
     if (!machines || machines.length === 0) {
@@ -635,7 +625,6 @@ async function loadLiveTasks() {
       return;
     }
 
-    // 1. ISOLATED SINGLE MACHINE VIEW
     if (currentMachine) {
       const targetMachine = machines.find(m => m.client_id === currentMachine);
       if (!targetMachine) {
@@ -672,7 +661,6 @@ async function loadLiveTasks() {
       return;
     }
 
-    // 2. MULTI-MACHINE ALL-IN-ONE VIEW
     const totalTasks = machines.reduce((sum, m) => sum + (m.tasks ? m.tasks.length : 0), 0);
     const onlineCount = machines.filter(m => m.is_online).length;
     if (mBadge) mBadge.innerHTML = `🌐 <strong>Tất cả máy</strong> (${onlineCount}/${machines.length} Online)`;
@@ -852,15 +840,12 @@ async function runAutomatedTriage() {
     }
     const triage = await res.json();
 
-    // Switch to playbook tab
     const tabPlaybookBtn = document.querySelector('[data-sectab="playbook"]');
     if (tabPlaybookBtn) tabPlaybookBtn.click();
 
-    // Update isolation status
     currentMachineIsIsolated = Boolean(triage.is_isolated);
     updateIsolationUI(currentMachineIsIsolated, target);
 
-    // Update steps findings
     const steps = triage.workflow_steps || [];
     steps.forEach(s => {
       const card = document.getElementById(`stepCard_${s.step_number}`);
@@ -1053,12 +1038,9 @@ function downloadForensicJson() {
   URL.revokeObjectURL(url);
 }
 
-// Initialize on page load
 window.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   refreshAll();
-  // Auto-refresh summary, logs and machines every 30 seconds
   setInterval(refreshAll, 30000);
-  // Real-time live taskbar updates every 3 seconds (3000ms)
   setInterval(loadLiveTasks, 3000);
 });
