@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Windows Activity Tracker | Productivity Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <!-- Chart.js via CDN for responsive charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation Header -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="logo-icon">⏱️</div>
+        <div>
+          <h1>ActivityWatch Live</h1>
+          <p class="subtitle">Personal Productivity & Time Tracker</p>
+        </div>
+      </div>
+
+      <div class="nav-controls">
+        <div class="filter-group">
+          <button class="preset-btn active" data-range="today">Today</button>
+          <button class="preset-btn" data-range="yesterday">Yesterday</button>
+          <button class="preset-btn" data-range="7days">Last 7 Days</button>
+          <button class="preset-btn" data-range="30days">30 Days</button>
+        </div>
+
+        <div class="status-indicator" id="statusPill">
+          <span class="status-dot"></span>
+          <span id="statusText">Connecting...</span>
+        </div>
+
+        <button class="btn-refresh" id="refreshBtn" title="Refresh Dashboard">
+          🔄 Refresh
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="dashboard-content">
+      <!-- Metric Cards Grid -->
+      <section class="metrics-grid">
+        <div class="metric-card active-card">
+          <div class="card-icon">⚡</div>
+          <div class="card-body">
+            <span class="card-label">Active Work Time</span>
+            <span class="card-value" id="valActiveTime">0h 00m</span>
+            <span class="card-sub" id="valProdScore">Score: 0% productive</span>
+          </div>
+        </div>
+
+        <div class="metric-card idle-card">
+          <div class="card-icon">☕</div>
+          <div class="card-body">
+            <span class="card-label">Idle / Away Time</span>
+            <span class="card-value" id="valIdleTime">0h 00m</span>
+            <span class="card-sub" id="valIdlePct">0% of monitored time</span>
+          </div>
+        </div>
+
+        <div class="metric-card total-card">
+          <div class="card-icon">📊</div>
+          <div class="card-body">
+            <span class="card-label">Total Monitored Time</span>
+            <span class="card-value" id="valTotalTime">0h 00m</span>
+            <span class="card-sub" id="valTotalEvents">0 interval events</span>
+          </div>
+        </div>
+
+        <div class="metric-card apps-card">
+          <div class="card-icon">💻</div>
+          <div class="card-body">
+            <span class="card-label">Distinct Applications</span>
+            <span class="card-value" id="valAppsCount">0</span>
+            <span class="card-sub">tracked today</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section class="charts-row">
+        <!-- Hourly Activity Timeline -->
+        <div class="chart-card timeline-card">
+          <div class="card-header">
+            <h3>Hourly Activity Timeline</h3>
+            <span class="badge">Active vs Idle</span>
+          </div>
+          <div class="chart-container">
+            <canvas id="timelineChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Category Doughnut Chart -->
+        <div class="chart-card category-card">
+          <div class="card-header">
+            <h3>Category Breakdown</h3>
+            <span class="badge">Time Allocation</span>
+          </div>
+          <div class="chart-container doughnut-container">
+            <canvas id="categoryChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Top Applications Ranking -->
+      <section class="two-columns">
+        <div class="content-card top-apps-card">
+          <div class="card-header">
+            <h3>Top Applications</h3>
+            <span class="badge" id="topAppsCount">0 apps</span>
+          </div>
+          <div class="app-rankings" id="topAppsList">
+            <p class="empty-state">No activity records logged for this period yet.</p>
+          </div>
+        </div>
+
+        <!-- Privacy Status Card -->
+        <div class="content-card privacy-info-card">
+          <div class="card-header">
+            <h3>Privacy & Redaction Protection</h3>
+            <span class="badge status-secure">🛡️ Secure Local Filter</span>
+          </div>
+          <div class="privacy-details">
+            <p>Your client-side privacy engine filters data <strong>before</strong> transmitting to this server:</p>
+            <ul>
+              <li><strong>Ignored Apps:</strong> Password managers (1Password, KeePass, Bitwarden) and lock screens are completely dropped or masked.</li>
+              <li><strong>Private Browsing:</strong> InPrivate & Incognito window titles are scrubbed automatically.</li>
+              <li><strong>Sensitive Redaction:</strong> Credit cards, emails, auth tokens, and passwords in window titles are replaced with <code>[REDACTED]</code>.</li>
+              <li><strong>Offline SQLite:</strong> Records buffer locally on your Windows PC and sync automatically when Railway connection is available.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Activity Log Table -->
+      <section class="content-card table-section">
+        <div class="card-header table-header">
+          <div>
+            <h3>Activity Log Stream</h3>
+            <p class="section-sub">Chronological window focus and idle intervals</p>
+          </div>
+          <div class="table-search-box">
+            <input type="text" id="logSearchInput" placeholder="Filter application or title..." />
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Start Time</th>
+                <th>Duration</th>
+                <th>Application</th>
+                <th>Category</th>
+                <th>Window Title</th>
+                <th>State</th>
+              </tr>
+            </thead>
+            <tbody id="activityLogBody">
+              <tr>
+                <td colspan="6" class="text-center empty-state">Loading activity records...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>WinActivity Tracker &bull; Self-Hosted Personal Productivity &bull; Deployed on Railway</p>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+{
+  "server_url": "http://localhost:8000",
+  "api_token": "default-secret-token",
+  "client_id": "windows-workstation",
+  "poll_interval_seconds": 1.0,
+  "idle_threshold_seconds": 120.0,
+  "sync_interval_seconds": 30.0,
+  "sync_batch_size": 100,
+  "min_duration_seconds": 1.0,
+  "db_path": "buffer.db",
+  "privacy": {
+    "ignored_processes": [
+      "lockapp.exe",
+      "screensaver.exe",
+      "logonui.exe",
+      "1password.exe",
+      "keepass.exe",
+      "keepassxc.exe",
+      "bitwarden.exe",
+      "credentialui.exe",
+      "shellexperiencehost.exe",
+      "searchapp.exe",
+      "startmenuexperiencehost.exe"
+    ],
+    "mask_all_titles": false,
+    "mask_private_browsing": true,
+    "redact_keywords": [
+      "password",
+      "passcode",
+      "api_key",
+      "secret",
+      "token",
+      "credit card",
+      "ssn",
+      "cvv"
+    ],
+    "redact_patterns": [
+      "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b",
+      "\\b(?:\\d{4}[ -]?){3}\\d{4}\\b",
+      "(?i)(password|passwd|token|secret|api_?key|auth|bearer)=[^&\\s]+"
+    ],
+    "replacement_text": "[REDACTED]"
+  }
+}
