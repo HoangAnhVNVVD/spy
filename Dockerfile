@@ -14,8 +14,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend application
+# Copy backend application and client script
 COPY server/ ./server/
+COPY standalone_client.py ./standalone_client.py
 
 # Create persistent data directory for SQLite if PostgreSQL is not attached
 RUN mkdir -p /app/data

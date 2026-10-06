@@ -52,6 +52,15 @@ def serve_dashboard():
     return {"message": "Windows Activity Tracker backend is running.", "docs": "/docs"}
 
 
+@app.get("/tracker.py", include_in_schema=True)
+def download_tracker_script():
+    """Serve the standalone zero-dependency tracker script directly from Railway."""
+    tracker_file = STATIC_DIR / "tracker.py"
+    if tracker_file.exists():
+        return FileResponse(str(tracker_file), media_type="text/plain", filename="tracker.py")
+    return {"error": "Tracker script not found"}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("server.app:app", host=settings.HOST, port=settings.PORT, reload=True)
