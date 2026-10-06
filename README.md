@@ -210,6 +210,30 @@ Returns hourly bucketed active and idle durations for timeline graphing.
 `GET /health`  
 Returns `{"status": "ok", "service": "...", "database": "ok", "timestamp": "..."}`.
 
+### 5. Cybersecurity Knowledge Base & Principles
+`GET /api/v1/security/knowledge?q=<search_query>`  
+Returns structured operating principles across 20 domains, defensive interpretations, and telemetry source correlation checklists.
+
+### 6. 20-Step Defensive Playbook
+`GET /api/v1/security/workflow`  
+Returns the full 20-step incident response playbook (Identification &rarr; Scope &rarr; Containment &rarr; Hardening).
+
+### 7. Threat Hunting & IOA/IOC Alerts
+`GET /api/v1/security/alerts?client_id=<id>`  
+Returns multi-vector correlated threats, risk score (0-100), and recommended playbook actions.
+
+### 8. Automated Machine Security Triage
+`GET /api/v1/machines/{client_id}/security-triage`  
+Runs an automated 20-step security triage report evaluating live on-disk telemetry.
+
+### 9. Endpoint Isolation / Quarantine (Step 11)
+- `POST /api/v1/machines/{client_id}/isolate` (Quarantines endpoint, notifies client on next sync)
+- `POST /api/v1/machines/{client_id}/unisolate` (Restores endpoint back to normal operation)
+
+### 10. Forensic Evidence & Timeline Export
+`GET /api/v1/machines/{client_id}/forensics`  
+Exports reconstructed timeline of events with computed SHA-256 evidence integrity hash.
+
 ---
 
 ## 🧪 Running Automated Tests
@@ -220,7 +244,12 @@ Run the complete test suite with edge cases:
 python -m pytest tests -v
 ```
 
-All 43 tests cover:
+All 57 tests cover:
+- Cybersecurity operating principles knowledge base indexing & search
+- Threat hunting engine (IOC binaries, PowerShell base64 evasion, credential leakage, rapid hopping scraping)
+- 20-step defensive incident response triage generation
+- Endpoint isolation & unisolation workflows (Playbook Step 11)
+- Forensic timeline reconstruction & SHA-256 evidence checksum verification
 - Win32 API monitoring, 64-bit safe ctypes declarations & tick overflow wrapping
 - Privacy redactions (Vietnamese incognito, JWT tokens, credit cards, emails) & regex edge cases
 - SQLite local buffer thread-safety & offline queueing
