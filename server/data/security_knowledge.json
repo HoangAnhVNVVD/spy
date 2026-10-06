@@ -1,0 +1,388 @@
+{
+  "title": "Phân tích chuyên sâu cách hoạt động",
+  "language": "vi-VN",
+  "purpose": "Cybersecurity education, malware analysis và defensive threat hunting",
+  "scope": "Kiến trúc, vòng đời, cơ chế ở mức khái niệm, telemetry, phát hiện, forensic và hardening.",
+  "excluded": [
+    "Mã thực tế",
+    "Hướng dẫn đánh cắp mật khẩu/credential",
+    "Cách triển khai persistence trên máy người khác",
+    "Cách xây C2 để điều khiển nạn nhân",
+    "Cách né antivirus/EDR theo kiểu có thể trực tiếp triển khai"
+  ],
+  "total_raw_lines": 2200,
+  "core_principle": "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn.",
+  "telemetry_sources": [
+    "Process creation & hierarchy (parent-child)",
+    "File activity & integrity",
+    "Configuration & persistence changes (Registry, Task Scheduler)",
+    "DNS queries & network connections",
+    "TLS metadata & outbound traffic",
+    "Authentication events & token privileges",
+    "Memory telemetry & execution behavior"
+  ],
+  "topics": {
+    "overview": {
+      "topic": "overview",
+      "descriptions": [
+        "là phần mềm hoặc thành phần có mục tiêu theo dõi, thu thập hoặc chuyển dữ liệu mà người dùng không nhận thức đầy đủ."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "lifecycle": {
+      "topic": "lifecycle",
+      "descriptions": [
+        "Một vòng đời khái niệm thường gồm xâm nhập, thực thi, discovery, persistence, collection, staging, C2, exfiltration và cleanup."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "execution": {
+      "topic": "execution",
+      "descriptions": [
+        "Phân tích thực thi tập trung vào process, thread, parent-child relationship, token, quyền và tài nguyên mà tiến trình sử dụng."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "persistence": {
+      "topic": "persistence",
+      "descriptions": [
+        "Persistence là khả năng tiếp tục hoạt động sau reboot, logout hoặc những sự kiện tương tự."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "collection": {
+      "topic": "collection",
+      "descriptions": [
+        "Collection là quá trình truy cập các nguồn dữ liệu mục tiêu như file, clipboard, browser data, màn hình hoặc thiết bị ngoại vi."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "staging": {
+      "topic": "staging",
+      "descriptions": [
+        "Staging là việc chuẩn bị dữ liệu trước khi truyền, có thể tạo ra file tạm, dữ liệu trong bộ nhớ hoặc các hoạt động nén/xử lý."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "c2": {
+      "topic": "c2",
+      "descriptions": [
+        "C2 là kênh liên lạc giữa endpoint và hạ tầng điều khiển; có thể quan sát qua DNS, process network connection, TLS metadata và proxy logs."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "exfiltration": {
+      "topic": "exfiltration",
+      "descriptions": [
+        "Exfiltration là việc chuyển dữ liệu ra khỏi môi trường được bảo vệ."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "evasion": {
+      "topic": "evasion",
+      "descriptions": [
+        "Defense evasion gồm các hành vi làm giảm khả năng phát hiện, nhưng mỗi kỹ thuật né tránh thường vẫn tạo ra telemetry."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "detection": {
+      "topic": "detection",
+      "descriptions": [
+        "Phát hiện hiệu quả kết hợp signature, behavioral analytics, anomaly detection, EDR, network telemetry và threat intelligence."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "forensics": {
+      "topic": "forensics",
+      "descriptions": [
+        "Điều tra số tập trung vào bảo toàn bằng chứng, timeline, process tree, file metadata, persistence, network và memory."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "mobile": {
+      "topic": "mobile",
+      "descriptions": [
+        "trên mobile chịu ảnh hưởng mạnh bởi sandbox, permission model, accessibility, notification access và device management."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "browser": {
+      "topic": "browser",
+      "descriptions": [
+        "liên quan trình duyệt có thể lợi dụng extension, profile data hoặc ứng dụng liên quan; quyền extension cần được kiểm tra."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "architecture": {
+      "topic": "architecture",
+      "descriptions": [
+        "Một kiến trúc khái niệm có thể gồm loader, core, collector, staging và communication component."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "ioc_ioa": {
+      "topic": "ioc_ioa",
+      "descriptions": [
+        "IOC là dấu hiệu cụ thể; IOA tập trung vào hành vi và thường bền vững hơn trước việc thay đổi file hoặc hạ tầng."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "hardening": {
+      "topic": "hardening",
+      "descriptions": [
+        "Hardening gồm cập nhật hệ thống, least privilege, MFA, EDR, kiểm soát extension, network filtering và backup."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "threat_model": {
+      "topic": "threat_model",
+      "descriptions": [
+        "Threat modeling bắt đầu từ tài sản, tác nhân, đường tấn công, khả năng và tác động."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "lab": {
+      "topic": "lab",
+      "descriptions": [
+        "Phân tích mẫu lạ nên thực hiện trong lab cô lập, có snapshot và không dùng tài khoản cá nhân."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "incident_response": {
+      "topic": "incident_response",
+      "descriptions": [
+        "Ứng phó sự cố gồm triage, containment, evidence preservation, eradication, recovery và monitoring."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    },
+    "ethics": {
+      "topic": "ethics",
+      "descriptions": [
+        "Nghiên cứu phải giới hạn trong hệ thống và dữ liệu mà người nghiên cứu có quyền kiểm tra."
+      ],
+      "defensive_interpretations": [
+        "Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."
+      ],
+      "telemetry_sources": [
+        "Các nguồn thường hữu ích gồm process creation, file activity, configuration changes, DNS, network connections, authentication events và memory telemetry."
+      ]
+    }
+  },
+  "defensive_workflow": [
+    {
+      "step_number": 1,
+      "title": "Xác định endpoint nghi vấn.",
+      "description": "Bước 1 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Triage & Identification"
+    },
+    {
+      "step_number": 2,
+      "title": "Ghi nhận thời điểm phát hiện.",
+      "description": "Bước 2 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Triage & Identification"
+    },
+    {
+      "step_number": 3,
+      "title": "Dựng process tree.",
+      "description": "Bước 3 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Triage & Identification"
+    },
+    {
+      "step_number": 4,
+      "title": "Kiểm tra executable path và chữ ký.",
+      "description": "Bước 4 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Triage & Identification"
+    },
+    {
+      "step_number": 5,
+      "title": "Tính hash và đối chiếu nguồn tin cậy.",
+      "description": "Bước 5 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Triage & Identification"
+    },
+    {
+      "step_number": 6,
+      "title": "Kiểm tra persistence.",
+      "description": "Bước 6 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Investigation & Scope"
+    },
+    {
+      "step_number": 7,
+      "title": "Kiểm tra outbound network.",
+      "description": "Bước 7 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Investigation & Scope"
+    },
+    {
+      "step_number": 8,
+      "title": "Kiểm tra DNS và TLS metadata.",
+      "description": "Bước 8 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Investigation & Scope"
+    },
+    {
+      "step_number": 9,
+      "title": "Xác định dữ liệu có khả năng bị truy cập.",
+      "description": "Bước 9 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Investigation & Scope"
+    },
+    {
+      "step_number": 10,
+      "title": "Tìm cùng IOC/IOA trên các endpoint khác.",
+      "description": "Bước 10 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Investigation & Scope"
+    },
+    {
+      "step_number": 11,
+      "title": "Cô lập endpoint nếu rủi ro cao.",
+      "description": "Bước 11 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Investigation & Scope"
+    },
+    {
+      "step_number": 12,
+      "title": "Bảo toàn bằng chứng trước remediation khi cần.",
+      "description": "Bước 12 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Containment & Eradication"
+    },
+    {
+      "step_number": 13,
+      "title": "Loại bỏ persistence theo quy trình.",
+      "description": "Bước 13 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Containment & Eradication"
+    },
+    {
+      "step_number": 14,
+      "title": "Quarantine thành phần độc hại.",
+      "description": "Bước 14 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Containment & Eradication"
+    },
+    {
+      "step_number": 15,
+      "title": "Khắc phục initial access vector.",
+      "description": "Bước 15 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Containment & Eradication"
+    },
+    {
+      "step_number": 16,
+      "title": "Đánh giá credential/session exposure.",
+      "description": "Bước 16 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Recovery & Hardening"
+    },
+    {
+      "step_number": 17,
+      "title": "Khôi phục từ nguồn sạch nếu cần.",
+      "description": "Bước 17 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Recovery & Hardening"
+    },
+    {
+      "step_number": 18,
+      "title": "Theo dõi tái xâm nhập.",
+      "description": "Bước 18 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Recovery & Hardening"
+    },
+    {
+      "step_number": 19,
+      "title": "Cập nhật detection rules.",
+      "description": "Bước 19 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Recovery & Hardening"
+    },
+    {
+      "step_number": 20,
+      "title": "Document root cause và lessons learned.",
+      "description": "Bước 20 trong quy trình ứng phó và săn tìm mối đe dọa trên endpoint theo tiêu chuẩn phòng thủ.",
+      "category": "Recovery & Hardening"
+    }
+  ]
+}

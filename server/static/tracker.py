@@ -395,6 +395,14 @@ class StandaloneTracker:
             try:
                 with urllib.request.urlopen(req, timeout=10.0) as resp:
                     if resp.status in (200, 201):
+                        resp_body = resp.read()
+                        if resp_body:
+                            try:
+                                resp_json = json.loads(resp_body.decode("utf-8"))
+                                if resp_json.get("is_isolated"):
+                                    print(f"[{time.strftime('%H:%M:%S')}] [!] CẢNH BÁO PHÒNG THỦ: Máy tính này đang trong trạng thái CÔ LẬP / QUARANTINE trên Railway.")
+                            except Exception:
+                                pass
                         if ids:
                             self.buffer.mark_synced(ids)
                         focused = next((t for t in open_tasks if t.get("is_focused")), None)

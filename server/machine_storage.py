@@ -121,6 +121,52 @@ class MachineStorageManager:
 
         return info
 
+    def get_machine_info(self, client_id: str) -> Dict[str, Any]:
+        """Get machine metadata dictionary from disk."""
+        machine_dir = self.get_machine_dir(client_id)
+        info_path = machine_dir / "machine_info.json"
+        if info_path.exists():
+            try:
+                with open(info_path, "r", encoding="utf-8") as inf:
+                    return json.load(inf)
+            except Exception:
+                pass
+        return {
+            "client_id": client_id,
+            "machine_name": client_id,
+            "storage_folder": machine_dir.name,
+            "storage_path": str(machine_dir.resolve()),
+            "first_seen": "N/A",
+            "last_seen": "N/A",
+            "total_records": 0,
+        }
+
+    def get_recent_activities(self, client_id: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """Read the most recent activity records from the machine's activities.jsonl file."""
+        machine_dir = self.get_machine_dir(client_id)
+        jsonl_path = machine_dir / "activities.jsonl"
+        if not jsonl_path.exists():
+            return []
+
+        results: List[Dict[str, Any]] = []
+        try:
+            with open(jsonl_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+                for line in reversed(lines):
+                    line_str = line.strip()
+                    if not line_str:
+                        continue
+                    try:
+                        results.append(json.loads(line_str))
+                        if len(results) >= limit:
+                            break
+                    except Exception:
+                        continue
+        except Exception:
+            pass
+
+        return results
+
     def list_machines(self) -> List[Dict[str, Any]]:
         """List all machines that have dedicated storage on disk."""
         results: List[Dict[str, Any]] = []

@@ -202,6 +202,70 @@
         </div>
       </section>
 
+      <!-- 🛡️ Trung Tâm An Ninh Mạng & Săn Tìm Mối Đe Dọa (Cybersecurity & Forensic Center) -->
+      <section class="content-card security-section" id="securitySection" style="margin-bottom: 2rem; border: 1px solid rgba(239, 68, 68, 0.4); background: rgba(15, 23, 42, 0.88); box-shadow: 0 4px 24px rgba(239, 68, 68, 0.12);">
+        <div class="card-header table-header" style="flex-wrap: wrap; gap: 12px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 1.5rem;">🛡️</span>
+              <h3 style="margin: 0; font-size: 1.25rem; color: #f87171;">Trung Tâm An Ninh Mạng & Điều Tra Số</h3>
+              <span id="securityRiskBadge" class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.85rem;">🟢 Đang tải rủi ro...</span>
+              <span id="isolationStatusBadge" class="badge" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; font-size: 0.85rem;">[Bình thường]</span>
+            </div>
+            <p class="section-sub" style="margin-top: 4px; color: #94a3b8;">
+              Áp dụng nguyên tắc phòng thủ: <em>"Không nên kết luận chỉ từ một dấu hiệu. Cần tương quan process, file, network, identity, thời gian và quyền hạn."</em>
+            </p>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button id="btnRunTriage" class="btn-action-view" style="background: rgba(59, 130, 246, 0.2); border-color: #3b82f6; color: #93c5fd; padding: 6px 14px; font-weight: 600;">
+              ⚡ Chạy Triage 20 Bước
+            </button>
+            <button id="btnToggleIsolation" class="btn-action-delete" style="padding: 6px 14px; font-weight: 600;">
+              🔴 Cô lập Endpoint
+            </button>
+            <button id="btnExportForensics" class="btn-action-raw" style="padding: 6px 14px; font-weight: 600;">
+              📥 Báo Cáo Forensic
+            </button>
+          </div>
+        </div>
+
+        <!-- Security Sub-Tabs -->
+        <div class="security-subtabs" style="display: flex; gap: 10px; padding: 0.75rem 1.25rem; background: rgba(30, 41, 59, 0.5); border-bottom: 1px solid rgba(51, 65, 85, 0.6);">
+          <button class="sec-tab-btn active" data-sectab="alerts">🚨 Cảnh Báo IOA / IOC (<span id="alertCountBadge">0</span>)</button>
+          <button class="sec-tab-btn" data-sectab="playbook">📋 Quy Trình 20 Bước Phòng Thủ</button>
+          <button class="sec-tab-btn" data-sectab="knowledge">📚 Kho Tri Thức 20 Chủ Đề An Ninh</button>
+        </div>
+
+        <!-- Subtab 1: Alerts & Threats -->
+        <div id="secTabAlerts" class="sec-tab-content" style="padding: 1.25rem;">
+          <div id="securityAlertsList" style="display: flex; flex-direction: column; gap: 10px;">
+            <p class="empty-state">Đang quét telemetry để phát hiện dấu hiệu bất thường...</p>
+          </div>
+        </div>
+
+        <!-- Subtab 2: 20-Step Defensive Playbook -->
+        <div id="secTabPlaybook" class="sec-tab-content" style="display: none; padding: 1.25rem;">
+          <div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <span style="font-size: 0.9rem; color: #94a3b8;">Tiêu chuẩn điều tra sự cố số hóa theo 4 giai đoạn: Nhận diện &rarr; Mở rộng &rarr; Ngăn chặn &rarr; Phục hồi</span>
+            <span id="playbookTargetLabel" style="font-size: 0.85rem; color: #60a5fa; font-weight: 600;"></span>
+          </div>
+          <div id="playbookStepsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px;">
+            <p class="empty-state">Đang nạp 20 bước phòng thủ...</p>
+          </div>
+        </div>
+
+        <!-- Subtab 3: Knowledge Base Browser -->
+        <div id="secTabKnowledge" class="sec-tab-content" style="display: none; padding: 1.25rem;">
+          <div style="display: flex; gap: 12px; margin-bottom: 1rem; align-items: center;">
+            <input type="text" id="kbSearchInput" placeholder="🔍 Tìm kiếm chủ đề (ví dụ: lifecycle, c2, persistence, collection, forensics...)" style="flex: 1; padding: 8px 14px; background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; border-radius: 8px; color: #fff;" />
+            <span id="kbTopicCount" style="font-size: 0.85rem; color: #94a3b8;">Đang nạp chủ đề...</span>
+          </div>
+          <div id="kbTopicsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px;">
+            <p class="empty-state">Đang nạp tri thức an ninh mạng...</p>
+          </div>
+        </div>
+      </section>
+
       <!-- Activity Log Table -->
       <section class="content-card table-section">
         <div class="card-header table-header">
@@ -261,6 +325,32 @@
       <div class="modal-footer">
         <span id="modalLineCount" style="font-size:0.85rem; color:#94a3b8;">0 dòng</span>
         <button class="btn-refresh" id="modalRefreshBtn" style="padding:6px 14px; font-size:0.85rem;">🔄 Tải lại log</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forensic Evidence Modal -->
+  <div id="forensicModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 820px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.4rem;">🛡️</span>
+          <div>
+            <h3 id="modalForensicTitle" style="margin:0; font-size:1.15rem; color:#f87171;">Báo Cáo Điều Tra Số (Digital Forensics Audit)</h3>
+            <p id="modalForensicSub" style="margin:2px 0 0; font-size:0.8rem; color:#94a3b8;">Tính toàn vẹn bằng chứng và chuỗi thời gian</p>
+          </div>
+        </div>
+        <button class="modal-close-btn" id="closeForensicModalBtn" title="Đóng">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="modalForensicHeader" style="background: rgba(15,23,42,0.8); border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 14px; font-size: 0.85rem; color: #cbd5e1;">
+          Đang tính toán mã băm SHA-256...
+        </div>
+        <pre id="modalForensicTimeline" class="log-pre-viewer" style="max-height: 380px;">Đang trích xuất timeline sự kiện...</pre>
+      </div>
+      <div class="modal-footer">
+        <span id="modalForensicEventsCount" style="font-size:0.85rem; color:#94a3b8;">0 sự kiện</span>
+        <button class="btn-refresh" id="btnDownloadForensicsJson" style="padding:6px 14px; font-size:0.85rem;">💾 Tải xuống JSON</button>
       </div>
     </div>
   </div>

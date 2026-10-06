@@ -3,7 +3,8 @@ __pycache__/
 *$py.class
 .pytest_cache/
 .env
-data/
-*.db
-*.sqlite
+/data/machines/
+/data/*.db
+/data/*.sqlite
+!server/data/
 server_url.txt

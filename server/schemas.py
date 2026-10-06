@@ -41,6 +41,7 @@ class BatchActivityResponse(BaseModel):
     count: int
     client_id: str
     open_tasks_count: Optional[int] = None
+    is_isolated: Optional[bool] = False
 
 
 class MachineLiveStatus(BaseModel):

@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from server.config import settings
 from server.database import init_db
-from server.routes import activities, analytics, health, machines
+from server.routes import activities, analytics, health, machines, security
 
 # Ensure DB initialized on module load
 init_db()
@@ -37,6 +37,7 @@ app.include_router(activities.router)
 app.include_router(activities.compat_router)
 app.include_router(analytics.router)
 app.include_router(machines.router)
+app.include_router(security.router)
 
 # Mount static web dashboard
 STATIC_DIR = Path(__file__).parent / "static"

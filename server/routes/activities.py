@@ -123,11 +123,15 @@ def ingest_activities_batch(
         machine_storage.record_live_tasks(payload.client_id, tasks_data, client_ip=client_ip)
         open_tasks_count = len(tasks_data)
 
+    machine_info = machine_storage.get_machine_info(payload.client_id)
+    is_isolated = bool(machine_info.get("is_isolated", False))
+
     return BatchActivityResponse(
         status="success",
         count=inserted_count,
         client_id=payload.client_id,
         open_tasks_count=open_tasks_count if payload.open_tasks is not None else None,
+        is_isolated=is_isolated,
     )
 
 

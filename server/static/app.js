@@ -487,6 +487,57 @@ function setupEventListeners() {
       }
     });
   }
+
+  // Security sub-tabs switcher
+  document.querySelectorAll('.sec-tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('.sec-tab-btn').forEach(b => b.classList.remove('active'));
+      const target = e.currentTarget;
+      target.classList.add('active');
+      const tabName = target.getAttribute('data-sectab');
+      const tabAlerts = document.getElementById('secTabAlerts');
+      const tabPlaybook = document.getElementById('secTabPlaybook');
+      const tabKnowledge = document.getElementById('secTabKnowledge');
+      if (tabAlerts) tabAlerts.style.display = tabName === 'alerts' ? 'block' : 'none';
+      if (tabPlaybook) tabPlaybook.style.display = tabName === 'playbook' ? 'block' : 'none';
+      if (tabKnowledge) tabKnowledge.style.display = tabName === 'knowledge' ? 'block' : 'none';
+    });
+  });
+
+  // Security actions
+  const btnRunTriage = document.getElementById('btnRunTriage');
+  if (btnRunTriage) btnRunTriage.addEventListener('click', runAutomatedTriage);
+
+  const btnToggleIso = document.getElementById('btnToggleIsolation');
+  if (btnToggleIso) btnToggleIso.addEventListener('click', toggleMachineIsolation);
+
+  const btnExportForensic = document.getElementById('btnExportForensics');
+  if (btnExportForensic) btnExportForensic.addEventListener('click', openForensicModal);
+
+  const closeForensicBtn = document.getElementById('closeForensicModalBtn');
+  const forensicModal = document.getElementById('forensicModal');
+  if (closeForensicBtn && forensicModal) {
+    closeForensicBtn.addEventListener('click', () => { forensicModal.style.display = 'none'; });
+    forensicModal.addEventListener('click', (e) => {
+      if (e.target === forensicModal) forensicModal.style.display = 'none';
+    });
+  }
+
+  const btnDownloadForensic = document.getElementById('btnDownloadForensicsJson');
+  if (btnDownloadForensic) {
+    btnDownloadForensic.addEventListener('click', downloadForensicJson);
+  }
+
+  const kbSearchInput = document.getElementById('kbSearchInput');
+  if (kbSearchInput) {
+    let kbDebounce = null;
+    kbSearchInput.addEventListener('input', (e) => {
+      clearTimeout(kbDebounce);
+      kbDebounce = setTimeout(() => {
+        loadSecurityKnowledge(e.target.value);
+      }, 250);
+    });
+  }
 }
 
 async function loadMachines() {
@@ -663,8 +714,343 @@ async function refreshAll() {
     loadTimeline(),
     loadActivityLog(),
     loadMachines(),
-    loadLiveTasks()
+    loadLiveTasks(),
+    loadSecurityOverview(),
+    loadSecurityPlaybook(),
+    loadSecurityKnowledge()
   ]);
+}
+
+let currentForensicData = null;
+let currentMachineIsIsolated = false;
+
+async function loadSecurityOverview() {
+  try {
+    const url = `/api/v1/security/alerts${currentMachine ? '?client_id=' + encodeURIComponent(currentMachine) : ''}`;
+    const res = await fetch(url, { headers: getAuthHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const riskBadge = document.getElementById('securityRiskBadge');
+    const alertCount = document.getElementById('alertCountBadge');
+    const alertsList = document.getElementById('securityAlertsList');
+
+    if (alertCount) alertCount.innerText = data.alert_count || 0;
+
+    if (riskBadge) {
+      const score = data.risk_score || 0;
+      const level = data.risk_level || 'NORMAL';
+      let badgeBg = 'rgba(16, 185, 129, 0.2)';
+      let badgeColor = '#34d399';
+      let label = `🟢 ${score}/100 - An Toàn`;
+
+      if (level === 'CRITICAL') {
+        badgeBg = 'rgba(239, 68, 68, 0.25)';
+        badgeColor = '#f87171';
+        label = `🔴 ${score}/100 - NGUY CẤP`;
+      } else if (level === 'HIGH') {
+        badgeBg = 'rgba(249, 115, 22, 0.25)';
+        badgeColor = '#fb923c';
+        label = `🟠 ${score}/100 - Rủi Ro Cao`;
+      } else if (level === 'MEDIUM') {
+        badgeBg = 'rgba(234, 179, 8, 0.25)';
+        badgeColor = '#facc15';
+        label = `🟡 ${score}/100 - Cảnh Báo Vừa`;
+      } else if (level === 'LOW') {
+        badgeBg = 'rgba(59, 130, 246, 0.2)';
+        badgeColor = '#60a5fa';
+        label = `🔵 ${score}/100 - Rủi Ro Thấp`;
+      }
+
+      riskBadge.style.background = badgeBg;
+      riskBadge.style.color = badgeColor;
+      riskBadge.innerText = label;
+    }
+
+    if (alertsList) {
+      if (!data.alerts || data.alerts.length === 0) {
+        alertsList.innerHTML = `
+          <div class="empty-state" style="padding: 1.5rem; text-align: center; color: #34d399; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px;">
+            ✅ Không phát hiện dấu hiệu tấn công (IOA/IOC) nào. Hệ thống hoạt động an toàn theo nguyên tắc phòng thủ.
+          </div>
+        `;
+      } else {
+        alertsList.innerHTML = data.alerts.map(a => {
+          const sevClass = `sev-${(a.severity || 'low').toLowerCase()}`;
+          return `
+            <div class="alert-item-card ${sevClass}">
+              <div class="alert-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span class="badge" style="background:#0f172a; font-weight:700;">${escapeHtml(a.id || 'IOA')}</span>
+                  <span class="badge" style="background:${a.severity === 'CRITICAL' ? '#ef4444' : a.severity === 'HIGH' ? '#f97316' : '#eab308'}; color:#fff; font-weight:700;">
+                    ${escapeHtml(a.severity)}
+                  </span>
+                  <strong style="color:#f8fafc; font-size:0.95rem;">${escapeHtml(a.process_name || 'System')}</strong>
+                </div>
+                <span style="font-size:0.8rem; color:#94a3b8;">${escapeHtml(a.timestamp || '')}</span>
+              </div>
+              <p style="margin:4px 0; font-size:0.9rem; color:#e2e8f0;">${escapeHtml(a.message)}</p>
+              <div style="font-size:0.82rem; color:#cbd5e1; background:rgba(0,0,0,0.25); padding:6px 10px; border-radius:6px;">
+                💡 <strong>Hành động khuyến nghị:</strong> ${escapeHtml(a.recommendation || 'Kiểm tra chi tiết tiến trình.')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load security overview:', err);
+  }
+}
+
+async function loadSecurityPlaybook() {
+  const container = document.getElementById('playbookStepsList');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/v1/security/workflow', { headers: getAuthHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    const steps = data.steps || [];
+
+    const targetLabel = document.getElementById('playbookTargetLabel');
+    if (targetLabel) {
+      targetLabel.innerText = currentMachine ? `Đích: Máy ${currentMachine}` : 'Đích: Tất cả máy tính';
+    }
+
+    container.innerHTML = steps.map(s => {
+      return `
+        <div class="playbook-step-card" id="stepCard_${s.step_number}">
+          <div class="step-card-header">
+            <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-weight: 700;">Bước ${s.step_number}</span>
+            <span class="badge" style="background: rgba(148, 163, 184, 0.1); color: #94a3b8; font-size:0.75rem;">${escapeHtml(s.category)}</span>
+          </div>
+          <h4 style="margin: 2px 0; color: #f1f5f9; font-size: 0.95rem;">${escapeHtml(s.title)}</h4>
+          <p class="step-finding" style="margin: 0; font-size: 0.82rem; color: #94a3b8;">${escapeHtml(s.description || 'Chưa chạy triage.')}</p>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Failed to load security playbook:', err);
+  }
+}
+
+async function runAutomatedTriage() {
+  const target = currentMachine || (document.getElementById('machineSelect') ? document.getElementById('machineSelect').value : '');
+  if (!target) {
+    alert('Vui lòng chọn một máy tính cụ thể ở dropdown góc trên để chạy Triage 20 bước chuyên sâu!');
+    return;
+  }
+
+  const btn = document.getElementById('btnRunTriage');
+  if (btn) btn.innerText = '⏳ Đang phân tích triage...';
+
+  try {
+    const res = await fetch(`/api/v1/machines/${encodeURIComponent(target)}/security-triage`, { headers: getAuthHeaders() });
+    if (!res.ok) {
+      alert('Không thể thực hiện triage: ' + res.statusText);
+      return;
+    }
+    const triage = await res.json();
+
+    // Switch to playbook tab
+    const tabPlaybookBtn = document.querySelector('[data-sectab="playbook"]');
+    if (tabPlaybookBtn) tabPlaybookBtn.click();
+
+    // Update isolation status
+    currentMachineIsIsolated = Boolean(triage.is_isolated);
+    updateIsolationUI(currentMachineIsIsolated, target);
+
+    // Update steps findings
+    const steps = triage.workflow_steps || [];
+    steps.forEach(s => {
+      const card = document.getElementById(`stepCard_${s.step_number}`);
+      if (card) {
+        const findingEl = card.querySelector('.step-finding');
+        if (findingEl) {
+          findingEl.innerHTML = `<strong style="color:${s.status === 'FLAGGED' ? '#ef4444' : s.status === 'WARNING' ? '#f59e0b' : '#34d399'}">[${escapeHtml(s.status)}]</strong> ${escapeHtml(s.finding)}`;
+        }
+      }
+    });
+
+    alert(`Hoàn thành Triage 20 bước cho máy '${target}'! Đánh giá rủi ro: ${triage.risk_label} (Điểm: ${triage.risk_score}/100)`);
+  } catch (err) {
+    console.error('Failed to run triage:', err);
+    alert('Lỗi khi chạy triage: ' + err.message);
+  } finally {
+    if (btn) btn.innerText = '⚡ Chạy Triage 20 Bước';
+  }
+}
+
+function updateIsolationUI(isIsolated, target) {
+  const badge = document.getElementById('isolationStatusBadge');
+  const btn = document.getElementById('btnToggleIsolation');
+  if (badge) {
+    if (isIsolated) {
+      badge.style.background = 'rgba(239, 68, 68, 0.25)';
+      badge.style.color = '#f87171';
+      badge.innerText = '🔴 ĐÃ BỊ CÔ LẬP / QUARANTINED';
+    } else {
+      badge.style.background = 'rgba(59, 130, 246, 0.15)';
+      badge.style.color = '#60a5fa';
+      badge.innerText = '[Bình thường - Mở]';
+    }
+  }
+  if (btn) {
+    btn.innerText = isIsolated ? '🟢 Hủy Cô Lập Endpoint' : '🔴 Cô lập Endpoint';
+    btn.style.background = isIsolated ? '#10b981' : '#dc2626';
+  }
+}
+
+async function toggleMachineIsolation() {
+  const target = currentMachine || (document.getElementById('machineSelect') ? document.getElementById('machineSelect').value : '');
+  if (!target) {
+    alert('Vui lòng chọn một máy tính cụ thể để thực hiện cô lập/hủy cô lập!');
+    return;
+  }
+
+  const action = currentMachineIsIsolated ? 'unisolate' : 'isolate';
+  const confirmMsg = currentMachineIsIsolated
+    ? `Bạn có chắc chắn muốn HỦY CÔ LẬP cho máy '${target}' không?`
+    : `CẢNH BÁO: Bạn có chắc chắn muốn CÔ LẬP (Quarantine) máy '${target}' theo Bước 11 của Playbook không?`;
+
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const res = await fetch(`/api/v1/machines/${encodeURIComponent(target)}/${action}`, {
+      method: 'POST',
+      headers: getAuthHeaders()
+    });
+    if (res.status === 401) {
+      handleAuthError(res);
+      return;
+    }
+    const data = await res.json();
+    currentMachineIsIsolated = Boolean(data.is_isolated);
+    updateIsolationUI(currentMachineIsIsolated, target);
+    alert(data.message || 'Thao tác cô lập thành công!');
+    refreshAll();
+  } catch (err) {
+    console.error('Failed to toggle isolation:', err);
+    alert('Lỗi khi thay đổi trạng thái cô lập: ' + err.message);
+  }
+}
+
+async function loadSecurityKnowledge(query = '') {
+  const grid = document.getElementById('kbTopicsGrid');
+  const countLabel = document.getElementById('kbTopicCount');
+  if (!grid) return;
+  try {
+    const url = `/api/v1/security/knowledge${query ? '?q=' + encodeURIComponent(query) : ''}`;
+    const res = await fetch(url, { headers: getAuthHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    const topics = data.topics || [];
+
+    if (countLabel) countLabel.innerText = `${topics.length} chủ đề indexed`;
+
+    if (topics.length === 0) {
+      grid.innerHTML = `<p class="empty-state" style="grid-column: 1 / -1; text-align: center;">Không tìm thấy chủ đề phù hợp với '${escapeHtml(query)}'.</p>`;
+      return;
+    }
+
+    grid.innerHTML = topics.map(t => {
+      const desc = t.descriptions ? t.descriptions.join('<br>') : '';
+      const def = t.defensive_interpretations ? t.defensive_interpretations.join(' ') : '';
+      const tele = t.telemetry_sources ? t.telemetry_sources.join(' ') : '';
+
+      return `
+        <div class="kb-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="badge" style="background:rgba(56, 189, 248, 0.2); color:#38bdf8; font-weight:700;">CHỦ ĐỀ: ${escapeHtml(t.topic.toUpperCase())}</span>
+          </div>
+          <div style="font-size:0.88rem; color:#f1f5f9; line-height:1.45;">
+            ${escapeHtml(desc)}
+          </div>
+          ${def ? `
+            <div style="font-size:0.8rem; color:#cbd5e1; background:rgba(30, 41, 59, 0.6); padding:8px; border-radius:6px; border-left:3px solid #3b82f6;">
+              🛡️ <strong>Nguyên tắc phòng thủ:</strong> ${escapeHtml(def)}
+            </div>
+          ` : ''}
+          ${tele ? `
+            <div style="font-size:0.78rem; color:#94a3b8;">
+              📡 <strong>Telemetry:</strong> ${escapeHtml(tele)}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Failed to load security knowledge:', err);
+  }
+}
+
+async function openForensicModal() {
+  const target = currentMachine || (document.getElementById('machineSelect') ? document.getElementById('machineSelect').value : '');
+  if (!target) {
+    alert('Vui lòng chọn một máy tính cụ thể ở dropdown góc trên để xuất báo cáo Forensic!');
+    return;
+  }
+
+  const modal = document.getElementById('forensicModal');
+  const header = document.getElementById('modalForensicHeader');
+  const timelineEl = document.getElementById('modalForensicTimeline');
+  const countEl = document.getElementById('modalForensicEventsCount');
+
+  if (modal) modal.style.display = 'flex';
+  if (header) header.innerText = `Đang trích xuất dữ liệu điều tra cho máy '${target}'...`;
+  if (timelineEl) timelineEl.innerText = 'Đang đọc và tính toán mã băm SHA-256...';
+
+  try {
+    const res = await fetch(`/api/v1/machines/${encodeURIComponent(target)}/forensics`, { headers: getAuthHeaders() });
+    if (!res.ok) {
+      if (timelineEl) timelineEl.innerText = 'Lỗi trích xuất: ' + res.statusText;
+      return;
+    }
+    const data = await res.json();
+    currentForensicData = data;
+
+    if (header) {
+      header.innerHTML = `
+        <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <div>
+            <strong>💻 Máy điều tra:</strong> <span style="color:#60a5fa">${escapeHtml(data.client_id)}</span><br>
+            <strong>🔒 Mã băm tính toàn vẹn (SHA-256):</strong> <code style="color:#34d399; font-size:0.8rem;">${escapeHtml(data.evidence_hash_sha256 || 'N/A')}</code>
+          </div>
+          <div>
+            <strong>Dung lượng tệp:</strong> ${(data.evidence_file_size_bytes / 1024).toFixed(1)} KB<br>
+            <strong>Thời điểm xuất:</strong> ${new Date(data.exported_at).toLocaleString()}
+          </div>
+        </div>
+      `;
+    }
+
+    if (countEl) countEl.innerText = `${data.total_timeline_events || 0} sự kiện được xác thực`;
+
+    if (timelineEl) {
+      const lines = (data.timeline || []).map(ev => {
+        const flag = ev.forensic_flag === 'SUSPICIOUS_IOA' ? '[⚠️ IOA_DETECTED]' : '[NORMAL]';
+        return `[${ev.timestamp}] ${flag} [${ev.process_name}] (${ev.duration_seconds}s) "${ev.window_title}" | Cat: ${ev.category}`;
+      });
+      timelineEl.innerText = lines.length > 0 ? lines.join('\n') : 'Chưa có sự kiện nào trong timeline.';
+    }
+  } catch (err) {
+    console.error('Failed to load forensic data:', err);
+    if (timelineEl) timelineEl.innerText = 'Lỗi: ' + err.message;
+  }
+}
+
+function downloadForensicJson() {
+  if (!currentForensicData) {
+    alert('Chưa có dữ liệu Forensic để tải xuống.');
+    return;
+  }
+  const blob = new Blob([JSON.stringify(currentForensicData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `forensic_report_${currentForensicData.client_id || 'machine'}_${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // Initialize on page load

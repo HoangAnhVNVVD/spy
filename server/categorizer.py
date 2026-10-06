@@ -112,6 +112,44 @@ SYSTEM_PROCESSES = {
     "control.exe",
 }
 
+CYBERSECURITY_PROCESSES = {
+    "wireshark.exe",
+    "tshark.exe",
+    "tcpview.exe",
+    "procmon.exe",
+    "procmon64.exe",
+    "procexp.exe",
+    "procexp64.exe",
+    "fiddler.exe",
+    "burpsuite.exe",
+    "x64dbg.exe",
+    "ida64.exe",
+    "ghidra.exe",
+    "msmpeng.exe",
+    "nmap.exe",
+    "zenmap.exe",
+    "autopsy.exe",
+    "volatility.exe",
+    "ftk_imager.exe",
+    "osqueryd.exe",
+    "mimikatz.exe",
+    "procdump.exe",
+    "pwdump.exe",
+}
+
+SYSADMIN_PROCESSES = {
+    "eventvwr.exe",
+    "resmon.exe",
+    "perfmon.exe",
+    "compmgmt.msc",
+    "lusrmgr.msc",
+    "gpedit.msc",
+    "secpol.msc",
+    "services.msc",
+    "devmgmt.msc",
+    "diskmgmt.msc",
+}
+
 
 def classify_activity(
     process_name: str,
@@ -133,6 +171,14 @@ def classify_activity(
 
     if "[private" in proc or "[private" in title:
         return "Privacy / Ignored"
+
+    # Cybersecurity tools take priority
+    if proc in CYBERSECURITY_PROCESSES:
+        return "Cybersecurity & Defense"
+
+    # Sysadmin tools
+    if proc in SYSADMIN_PROCESSES:
+        return "System Administration & Shells"
 
     # Browser contextual routing based on window title
     if proc in BROWSER_PROCESSES:
