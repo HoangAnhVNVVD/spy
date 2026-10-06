@@ -1,5 +1,7 @@
 /* Interactive Dashboard Logic */
 
+const urlParams = new URLSearchParams(window.location.search);
+let currentMachine = urlParams.get('machine') || '';
 let currentRange = 'today';
 let timelineChart = null;
 let categoryChart = null;
@@ -76,11 +78,12 @@ async function checkHealth() {
 
 async function loadSummary() {
   const { from, to } = getDateRange(currentRange);
+  let summaryUrl = `/api/v1/analytics/summary?date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}`;
+  if (currentMachine) {
+    summaryUrl += `&client_id=${encodeURIComponent(currentMachine)}`;
+  }
   try {
-    const res = await fetch(
-      `/api/v1/analytics/summary?date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}`,
-      { headers: getAuthHeaders() }
-    );
+    const res = await fetch(summaryUrl, { headers: getAuthHeaders() });
     if (!res.ok) {
       handleAuthError(res);
       return;
@@ -208,11 +211,13 @@ async function loadTimeline() {
   if (currentRange === '7days') bucketHours = 6;
   if (currentRange === '30days') bucketHours = 24;
 
+  let timelineUrl = `/api/v1/analytics/timeline?date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}&bucket_hours=${bucketHours}`;
+  if (currentMachine) {
+    timelineUrl += `&client_id=${encodeURIComponent(currentMachine)}`;
+  }
+
   try {
-    const res = await fetch(
-      `/api/v1/analytics/timeline?date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}&bucket_hours=${bucketHours}`,
-      { headers: getAuthHeaders() }
-    );
+    const res = await fetch(timelineUrl, { headers: getAuthHeaders() });
     if (!res.ok) {
       handleAuthError(res);
       return;
@@ -284,11 +289,12 @@ async function loadTimeline() {
 
 async function loadActivityLog() {
   const { from, to } = getDateRange(currentRange);
+  let logUrl = `/api/v1/activities?date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}&limit=100`;
+  if (currentMachine) {
+    logUrl += `&client_id=${encodeURIComponent(currentMachine)}`;
+  }
   try {
-    const res = await fetch(
-      `/api/v1/activities?date_from=${encodeURIComponent(from)}&date_to=${encodeURIComponent(to)}&limit=100`,
-      { headers: getAuthHeaders() }
-    );
+    const res = await fetch(logUrl, { headers: getAuthHeaders() });
     if (!res.ok) {
       handleAuthError(res);
       return;
@@ -347,6 +353,79 @@ function escapeHtml(str) {
   }[m]));
 }
 
+function populateMachineSelector(machines) {
+  const select = document.getElementById('machineSelect');
+  if (!select) return;
+
+  const currentVal = currentMachine;
+  let optionsHtml = `<option value="">🌐 Tất cả máy tính (Tổng hợp)</option>`;
+  if (machines && machines.length > 0) {
+    optionsHtml += machines.map(m => {
+      const isOnline = Boolean(m.is_online);
+      const statusIcon = isOnline ? '🟢' : '⚪';
+      const mName = escapeHtml(m.machine_name || m.client_id || 'Unknown');
+      const recs = m.total_records ? ` (${m.total_records} logs)` : '';
+      return `<option value="${mName}">${statusIcon} 💻 ${mName}${recs}</option>`;
+    }).join('');
+  }
+
+  select.innerHTML = optionsHtml;
+  select.value = currentVal;
+}
+
+window.selectMachine = function(machineName) {
+  currentMachine = machineName || '';
+  const select = document.getElementById('machineSelect');
+  if (select) select.value = currentMachine;
+
+  const url = new URL(window.location.href);
+  if (currentMachine) {
+    url.searchParams.set('machine', currentMachine);
+  } else {
+    url.searchParams.delete('machine');
+  }
+  window.history.replaceState({}, '', url.toString());
+
+  refreshAll();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+let currentModalMachine = '';
+
+window.openDiskLogModal = async function(machineName) {
+  currentModalMachine = machineName;
+  const modal = document.getElementById('diskLogModal');
+  const title = document.getElementById('modalMachineTitle');
+  const content = document.getElementById('modalLogContent');
+  const lineCount = document.getElementById('modalLineCount');
+  if (!modal || !content) return;
+
+  modal.style.display = 'flex';
+  if (title) title.innerText = `Nhật ký ổ đĩa máy: ${machineName}`;
+  content.innerText = 'Đang đọc trực tiếp file log từ ổ đĩa Railway...';
+  if (lineCount) lineCount.innerText = 'Đang tải...';
+
+  try {
+    const res = await fetch(`/api/v1/machines/${encodeURIComponent(machineName)}/logs?limit=300`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      content.innerText = `Không tìm thấy file log trên đĩa cho máy '${machineName}'.`;
+      return;
+    }
+    const data = await res.json();
+    if (!data.lines || data.lines.length === 0) {
+      content.innerText = `Chưa có bản ghi nào trong daily/*.log của máy '${machineName}'.`;
+      if (lineCount) lineCount.innerText = '0 dòng';
+      return;
+    }
+    content.innerText = data.lines.join('\n');
+    if (lineCount) lineCount.innerText = `${data.lines.length} dòng gần nhất`;
+  } catch (err) {
+    content.innerText = `Lỗi đọc log: ${err}`;
+  }
+};
+
 function setupEventListeners() {
   document.querySelectorAll('.preset-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -356,6 +435,13 @@ function setupEventListeners() {
       refreshAll();
     });
   });
+
+  const machineSelect = document.getElementById('machineSelect');
+  if (machineSelect) {
+    machineSelect.addEventListener('change', (e) => {
+      selectMachine(e.target.value);
+    });
+  }
 
   const refreshBtn = document.getElementById('refreshBtn');
   if (refreshBtn) {
@@ -378,6 +464,29 @@ function setupEventListeners() {
       }
     });
   }
+
+  // Modal event listeners
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const diskLogModal = document.getElementById('diskLogModal');
+  if (closeModalBtn && diskLogModal) {
+    closeModalBtn.addEventListener('click', () => {
+      diskLogModal.style.display = 'none';
+    });
+    diskLogModal.addEventListener('click', (e) => {
+      if (e.target === diskLogModal) {
+        diskLogModal.style.display = 'none';
+      }
+    });
+  }
+
+  const modalRefreshBtn = document.getElementById('modalRefreshBtn');
+  if (modalRefreshBtn) {
+    modalRefreshBtn.addEventListener('click', () => {
+      if (currentModalMachine) {
+        openDiskLogModal(currentModalMachine);
+      }
+    });
+  }
 }
 
 async function loadMachines() {
@@ -387,8 +496,12 @@ async function loadMachines() {
     const res = await fetch('/api/v1/machines', { headers: getAuthHeaders() });
     if (!res.ok) return;
     const machines = await res.json();
+
+    // Sync selector options
+    populateMachineSelector(machines);
+
     if (!machines || machines.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center empty-state">Chưa có máy tính nào kết nối. Hãy chạy tracker trên máy tính để tạo vùng nhớ!</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center empty-state">Chưa có máy tính nào kết nối. Hãy chạy tracker trên máy tính để tạo vùng nhớ!</td></tr>`;
       return;
     }
     tbody.innerHTML = machines.map(m => {
@@ -398,15 +511,22 @@ async function loadMachines() {
       const records = m.total_records || 0;
       const mb = m.disk_mb || 0;
       const app = escapeHtml(m.last_active_app || '-');
-      const title = escapeHtml(m.last_active_title ? m.last_active_title.slice(0, 35) : '');
+      const title = escapeHtml(m.last_active_title ? m.last_active_title.slice(0, 30) : '');
+      const isSelected = (currentMachine && currentMachine === mName);
+      const rowHighlight = isSelected ? 'background: rgba(59, 130, 246, 0.12);' : '';
+
       return `
-        <tr>
-          <td><strong style="color:#60a5fa">💻 ${mName}</strong></td>
+        <tr style="${rowHighlight}">
+          <td><strong style="color:#60a5fa">💻 ${mName}</strong> ${isSelected ? '<span class="badge" style="background:#10b981; color:#fff; font-size:10px;">Đang chọn</span>' : ''}</td>
           <td><code style="background:#1e293b;padding:2px 6px;border-radius:4px;color:#38bdf8">data/machines/${folder}/</code></td>
           <td>${lastSeen}</td>
           <td><span class="badge" style="background:#1e3a8a;color:#93c5fd">${records} bản ghi</span></td>
           <td><span style="color:#a7f3d0">${mb} MB</span></td>
           <td><span class="proc-name">${app}</span> ${title}</td>
+          <td>
+            <button class="btn-action-view" onclick="selectMachine('${mName}')" title="Chỉ xem dữ liệu của máy này">👁️ Xem riêng</button>
+            <button class="btn-action-log" onclick="openDiskLogModal('${mName}')" title="Xem file log daily/*.log trên ổ đĩa">📄 Log đĩa</button>
+          </td>
         </tr>
       `;
     }).join('');
@@ -415,11 +535,42 @@ async function loadMachines() {
   }
 }
 
+function renderTaskCard(t) {
+  const isFocused = Boolean(t.is_focused);
+  const borderStyle = isFocused
+    ? 'border: 1.5px solid #10b981; background: rgba(16, 185, 129, 0.1); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);'
+    : 'border: 1px solid #334155; background: rgba(30, 41, 59, 0.7);';
+  const badgeHtml = isFocused
+    ? `<span style="background:rgba(16,185,129,0.25); color:#34d399; border:1px solid rgba(16,185,129,0.5); padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:700;">🟢 ĐANG SỬ DỤNG [FOCUS]</span>`
+    : `<span style="background:rgba(148,163,184,0.15); color:#94a3b8; border:1px solid rgba(148,163,184,0.3); padding:2px 8px; border-radius:12px; font-size:0.75rem;">⚪ ĐANG MỞ [OPEN]</span>`;
+
+  const title = escapeHtml(t.window_title || '(Không có tiêu đề)');
+  const proc = escapeHtml(t.process_name || 'unknown.exe');
+  const pidText = t.pid ? `PID: ${t.pid}` : '';
+
+  return `
+    <div style="border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:6px; transition: all 0.2s ease; ${borderStyle}">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+          <span style="font-size:1.1rem;">💻</span>
+          <strong style="color:#f8fafc; font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${proc}</strong>
+          <span style="font-size:0.75rem; color:#64748b;">${pidText}</span>
+        </div>
+        <div>${badgeHtml}</div>
+      </div>
+      <div style="font-size:0.85rem; color:#cbd5e1; line-height:1.3; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;" title="${title}">
+        ${title}
+      </div>
+    </div>
+  `;
+}
+
 async function loadLiveTasks() {
   const container = document.getElementById('liveTaskbarList');
   const mBadge = document.getElementById('liveMachineBadge');
   const cBadge = document.getElementById('liveCountBadge');
   const tBadge = document.getElementById('liveTimeBadge');
+  const subTitle = document.getElementById('liveTaskbarSubtitle');
   if (!container) return;
 
   try {
@@ -433,50 +584,68 @@ async function loadLiveTasks() {
       return;
     }
 
-    // Select primary machine (online first, or latest)
-    const machine = machines[0];
-    const onlineTag = machine.is_online ? '🟢 Online' : '⚪ Offline';
-    const lastTime = machine.last_updated ? new Date(machine.last_updated).toLocaleTimeString() : 'N/A';
-    const tasks = machine.tasks || [];
+    // 1. ISOLATED SINGLE MACHINE VIEW
+    if (currentMachine) {
+      const targetMachine = machines.find(m => m.client_id === currentMachine);
+      if (!targetMachine) {
+        if (mBadge) mBadge.innerHTML = `💻 <strong>${escapeHtml(currentMachine)}</strong> (⚪ Offline)`;
+        if (cBadge) cBadge.innerText = '0 tasks';
+        if (subTitle) subTitle.innerHTML = `Đang theo dõi riêng máy: <strong style="color:#60a5fa">${escapeHtml(currentMachine)}</strong>`;
+        container.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 2rem;">
+            Máy tính <strong>${escapeHtml(currentMachine)}</strong> hiện chưa có phiên làm việc trực tuyến nào.
+          </div>
+        `;
+        return;
+      }
 
-    if (mBadge) mBadge.innerHTML = `💻 <strong>${escapeHtml(machine.client_id)}</strong> (${onlineTag})`;
-    if (cBadge) cBadge.innerText = `${tasks.length} tasks taskbar`;
-    if (tBadge) tBadge.innerText = `Cập nhật: ${lastTime}`;
+      const onlineTag = targetMachine.is_online ? '🟢 Online' : '⚪ Offline';
+      const lastTime = targetMachine.last_updated ? new Date(targetMachine.last_updated).toLocaleTimeString() : 'N/A';
+      const tasks = targetMachine.tasks || [];
 
-    if (tasks.length === 0) {
-      container.innerHTML = `
-        <div class="empty-state" style="grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 2rem;">
-          Không có ứng dụng nào trên thanh taskbar lúc ${lastTime}.
-        </div>
-      `;
+      if (mBadge) mBadge.innerHTML = `💻 <strong>${escapeHtml(targetMachine.client_id)}</strong> (${onlineTag})`;
+      if (cBadge) cBadge.innerText = `${tasks.length} tasks taskbar`;
+      if (tBadge) tBadge.innerText = `Cập nhật: ${lastTime}`;
+      if (subTitle) subTitle.innerHTML = `Đang theo dõi riêng máy: <strong style="color:#60a5fa">${escapeHtml(targetMachine.client_id)}</strong> (cô lập 100%)`;
+
+      if (tasks.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 2rem;">
+            Không có ứng dụng nào trên thanh taskbar lúc ${lastTime}.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = tasks.map(t => renderTaskCard(t)).join('');
       return;
     }
 
-    container.innerHTML = tasks.map(t => {
-      const isFocused = Boolean(t.is_focused);
-      const borderStyle = isFocused
-        ? 'border: 1.5px solid #10b981; background: rgba(16, 185, 129, 0.1); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);'
-        : 'border: 1px solid #334155; background: rgba(30, 41, 59, 0.7);';
-      const badgeHtml = isFocused
-        ? `<span style="background:rgba(16,185,129,0.25); color:#34d399; border:1px solid rgba(16,185,129,0.5); padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:700;">🟢 ĐANG SỬ DỤNG [FOCUS]</span>`
-        : `<span style="background:rgba(148,163,184,0.15); color:#94a3b8; border:1px solid rgba(148,163,184,0.3); padding:2px 8px; border-radius:12px; font-size:0.75rem;">⚪ ĐANG MỞ [OPEN]</span>`;
+    // 2. MULTI-MACHINE ALL-IN-ONE VIEW
+    const totalTasks = machines.reduce((sum, m) => sum + (m.tasks ? m.tasks.length : 0), 0);
+    const onlineCount = machines.filter(m => m.is_online).length;
+    if (mBadge) mBadge.innerHTML = `🌐 <strong>Tất cả máy</strong> (${onlineCount}/${machines.length} Online)`;
+    if (cBadge) cBadge.innerText = `${totalTasks} tasks tổng`;
+    if (subTitle) subTitle.innerText = `Hiển thị danh sách ứng dụng trên thanh Taskbar của tất cả ${machines.length} máy tính kết nối`;
 
-      const title = escapeHtml(t.window_title || '(Không có tiêu đề)');
-      const proc = escapeHtml(t.process_name || 'unknown.exe');
-      const pidText = t.pid ? `PID: ${t.pid}` : '';
+    container.innerHTML = machines.map(m => {
+      const isOnline = Boolean(m.is_online);
+      const onlineTag = isOnline ? '🟢 Online' : '⚪ Offline';
+      const lastTime = m.last_updated ? new Date(m.last_updated).toLocaleTimeString() : 'N/A';
+      const tasks = m.tasks || [];
 
       return `
-        <div style="border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:6px; transition: all 0.2s ease; ${borderStyle}">
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
-              <span style="font-size:1.1rem;">💻</span>
-              <strong style="color:#f8fafc; font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${proc}</strong>
-              <span style="font-size:0.75rem; color:#64748b;">${pidText}</span>
+        <div style="grid-column: 1 / -1; background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; border-radius: 12px; padding: 14px; margin-bottom: 8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; border-bottom: 1px solid rgba(51, 65, 85, 0.4); padding-bottom: 8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <strong style="color:#60a5fa; font-size:1rem;">💻 ${escapeHtml(m.client_id)}</strong>
+              <span class="badge" style="background:${isOnline ? 'rgba(16,185,129,0.15)' : 'rgba(148,163,184,0.1)'}; color:${isOnline ? '#34d399' : '#94a3b8'};">${onlineTag}</span>
+              <span style="font-size:0.8rem; color:#64748b;">(Cập nhật: ${lastTime})</span>
             </div>
-            <div>${badgeHtml}</div>
+            <button class="btn-action-view" onclick="selectMachine('${escapeHtml(m.client_id)}')">👁️ Chỉ xem máy này</button>
           </div>
-          <div style="font-size:0.85rem; color:#cbd5e1; line-height:1.3; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;" title="${title}">
-            ${title}
+          <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px;">
+            ${tasks.length > 0 ? tasks.map(t => renderTaskCard(t)).join('') : '<p class="empty-state" style="padding:1rem;">Không có ứng dụng nào đang mở.</p>'}
           </div>
         </div>
       `;

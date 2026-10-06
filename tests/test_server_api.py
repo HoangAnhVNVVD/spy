@@ -184,3 +184,80 @@ def test_analytics_summary_and_timeline(api_client):
     assert res_tl.status_code == 200
     timeline = res_tl.json()
     assert len(timeline) >= 1
+
+
+def test_multi_machine_isolation(api_client):
+    auth_header = {"Authorization": "Bearer test-secret-token"}
+
+    # Ingest machine A
+    payload_a = {
+        "client_id": "MACHINE-A",
+        "activities": [
+            {
+                "start_time": "2026-10-06T14:00:00Z",
+                "end_time": "2026-10-06T14:30:00Z",
+                "duration_seconds": 1800.0,
+                "process_name": "pycharm64.exe",
+                "window_title": "Project Alpha",
+                "is_idle": False,
+            }
+        ],
+        "open_tasks": [
+            {
+                "process_name": "pycharm64.exe",
+                "window_title": "Project Alpha",
+                "pid": 1111,
+                "is_focused": True,
+            }
+        ],
+    }
+    r_a = api_client.post("/api/v1/activities/batch", json=payload_a, headers=auth_header)
+    assert r_a.status_code == 201
+
+    # Ingest machine B
+    payload_b = {
+        "client_id": "MACHINE-B",
+        "activities": [
+            {
+                "start_time": "2026-10-06T15:00:00Z",
+                "end_time": "2026-10-06T15:45:00Z",
+                "duration_seconds": 2700.0,
+                "process_name": "excel.exe",
+                "window_title": "Financial Report.xlsx",
+                "is_idle": False,
+            }
+        ],
+        "open_tasks": [
+            {
+                "process_name": "excel.exe",
+                "window_title": "Financial Report.xlsx",
+                "pid": 2222,
+                "is_focused": True,
+            }
+        ],
+    }
+    r_b = api_client.post("/api/v1/activities/batch", json=payload_b, headers=auth_header)
+    assert r_b.status_code == 201
+
+    # Isolated summary for MACHINE-A
+    sum_a = api_client.get("/api/v1/analytics/summary", params={"client_id": "MACHINE-A"}).json()
+    assert sum_a["active_seconds"] == 1800.0
+    assert len(sum_a["top_apps"]) == 1
+    assert sum_a["top_apps"][0]["process_name"] == "pycharm64.exe"
+
+    # Isolated summary for MACHINE-B
+    sum_b = api_client.get("/api/v1/analytics/summary", params={"client_id": "MACHINE-B"}).json()
+    assert sum_b["active_seconds"] == 2700.0
+    assert len(sum_b["top_apps"]) == 1
+    assert sum_b["top_apps"][0]["process_name"] == "excel.exe"
+
+    # Isolated live tasks for MACHINE-A
+    live_a = api_client.get("/api/v1/machines/MACHINE-A/live").json()
+    assert live_a["client_id"] == "MACHINE-A"
+    assert live_a["tasks"][0]["process_name"] == "pycharm64.exe"
+
+    # Isolated live tasks for MACHINE-B
+    live_b = api_client.get("/api/v1/machines/MACHINE-B/live").json()
+    assert live_b["client_id"] == "MACHINE-B"
+    assert live_b["tasks"][0]["process_name"] == "excel.exe"
+
