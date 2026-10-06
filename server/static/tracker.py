@@ -292,26 +292,41 @@ class StandaloneTracker:
         ]
         ids = [item["_id"] for item in unsynced]
 
-        url = f"{self.server_url}/api/activities/batch"
+        endpoints = [
+            f"{self.server_url}/api/v1/activities/batch",
+            f"{self.server_url}/api/activities/batch",
+        ]
         data = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            url,
-            data=data,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_token}",
-                "User-Agent": "WinActivityTrackerStandalone/1.0",
-            },
-            method="POST",
-        )
+        last_err = None
 
-        try:
-            with urllib.request.urlopen(req, timeout=10.0) as resp:
-                if resp.status in (200, 201):
-                    self.buffer.mark_synced(ids)
-                    print(f"[*] Đã đồng bộ {len(ids)} bản ghi lên Railway ({self.server_url}) thành công.")
-        except Exception as e:
-            print(f"[!] Server offline hoặc chưa kết nối được: {e} (Dữ liệu đã được lưu an toàn trong SQLite).")
+        for url in endpoints:
+            req = urllib.request.Request(
+                url,
+                data=data,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {self.api_token}",
+                    "User-Agent": "WinActivityTrackerStandalone/1.0",
+                },
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=10.0) as resp:
+                    if resp.status in (200, 201):
+                        self.buffer.mark_synced(ids)
+                        print(f"[*] Đã đồng bộ {len(ids)} bản ghi lên Railway ({self.server_url}) thành công.")
+                        return
+            except urllib.error.HTTPError as e:
+                last_err = e
+                if e.code == 404:
+                    continue
+                break
+            except Exception as e:
+                last_err = e
+                break
+
+        if last_err:
+            print(f"[!] Server offline hoặc chưa kết nối được: {last_err} (Dữ liệu đã được lưu an toàn trong SQLite).")
 
     def run(self) -> None:
         print("=" * 65)

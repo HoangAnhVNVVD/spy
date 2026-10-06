@@ -34,6 +34,7 @@ app.add_middleware(
 # Include API routes
 app.include_router(health.router)
 app.include_router(activities.router)
+app.include_router(activities.compat_router)
 app.include_router(analytics.router)
 app.include_router(machines.router)
 

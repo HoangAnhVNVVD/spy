@@ -20,6 +20,7 @@ from server.schemas import (
 )
 
 router = APIRouter(prefix="/api/v1/activities", tags=["Activities"])
+compat_router = APIRouter(prefix="/api/activities", tags=["Activities Compat"])
 
 
 def parse_date_param(val: Optional[str], is_end_of_day: bool = False) -> Optional[datetime]:
@@ -118,6 +119,21 @@ def ingest_activities_batch(
         count=inserted_count,
         client_id=payload.client_id,
     )
+
+
+@compat_router.post(
+    "/batch",
+    response_model=BatchActivityResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_api_key)],
+)
+def ingest_activities_batch_compat(
+    payload: BatchActivityRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Compatibility endpoint for clients posting to /api/activities/batch."""
+    return ingest_activities_batch(payload, request, db)
 
 
 @router.get(
