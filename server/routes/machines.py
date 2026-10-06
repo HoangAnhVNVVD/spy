@@ -1,0 +1,54 @@
+"""API routes for managing and querying machine-specific disk partitions."""
+
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from server.auth import optional_auth_for_reads
+from server.machine_storage import machine_storage
+
+router = APIRouter(prefix="/api/v1/machines", tags=["Machines"])
+
+
+@router.get(
+    "",
+    response_model=List[Dict[str, Any]],
+    dependencies=[Depends(optional_auth_for_reads)],
+)
+def list_connected_machines():
+    """List all machines with dedicated disk partitions on Railway."""
+    return machine_storage.list_machines()
+
+
+@router.get(
+    "/{client_id}",
+    response_model=Dict[str, Any],
+    dependencies=[Depends(optional_auth_for_reads)],
+)
+def get_machine_info(client_id: str):
+    """Get metadata and storage information for a specific machine."""
+    machines = machine_storage.list_machines()
+    for m in machines:
+        if m.get("client_id") == client_id or m.get("storage_folder") == client_id:
+            return m
+    raise HTTPException(status_code=404, detail=f"Machine '{client_id}' not found on disk")
+
+
+@router.get(
+    "/{client_id}/logs",
+    dependencies=[Depends(optional_auth_for_reads)],
+)
+def get_machine_disk_logs(
+    client_id: str,
+    date: Optional[str] = Query(None, description="Date in YYYY-MM-DD format"),
+    limit: int = Query(100, ge=1, le=1000),
+):
+    """Retrieve raw activity logs directly from the machine's disk storage."""
+    lines = machine_storage.get_machine_logs(client_id, date_str=date, max_lines=limit)
+    return {
+        "client_id": client_id,
+        "date": date or "latest",
+        "total_lines": len(lines),
+        "lines": [line.strip() for line in lines],
+    }

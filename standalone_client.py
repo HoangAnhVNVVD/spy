@@ -324,13 +324,27 @@ class StandaloneTracker:
         print(f" Sync Interval   : {self.sync_interval}s")
         print(f" Raw Mode        : {'BẬT (Ghi 100% nguyên bản)' if self.raw_mode else 'TẮT'}")
         print("=" * 65)
-        print("Đang chạy ngầm ghi nhận hoạt động... Nhấn Ctrl+C để thoát.\n")
+        print("Đang khởi động... Đang chụp và gửi ngay lập tức lên Railway...\n")
 
         now = time.time()
         snap = self.monitor.snapshot()
         self._last_state = (snap.process_name, snap.window_title, snap.is_idle)
         self._start_epoch = now
         self._last_epoch = now
+
+        # 1. INSTANT INITIAL CAPTURE & IMMEDIATE SYNC
+        initial_record = {
+            "client_id": self.client_id,
+            "process_name": snap.process_name or "System",
+            "window_title": snap.window_title or "Active Window",
+            "start_time": self._to_iso(now),
+            "end_time": self._to_iso(now),
+            "duration_seconds": 1.0,
+            "is_idle": snap.is_idle,
+        }
+        self.buffer.insert(initial_record)
+        print(f"[*] Đẩy ngay hoạt động ban đầu: [{snap.process_name}] '{snap.window_title[:45]}'")
+        self.sync_to_server()
 
         try:
             while True:

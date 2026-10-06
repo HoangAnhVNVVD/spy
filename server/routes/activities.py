@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
 from server.auth import optional_auth_for_reads, require_api_key
 from server.categorizer import classify_activity
 from server.database import get_db
+from server.machine_storage import machine_storage
 from server.models import ActivityRecord
 from server.schemas import (
     ActivityItemOut,
@@ -49,14 +50,17 @@ def parse_date_param(val: Optional[str], is_end_of_day: bool = False) -> Optiona
 )
 def ingest_activities_batch(
     payload: BatchActivityRequest,
+    request: Request,
     db: Session = Depends(get_db),
 ):
     """
     Ingest a batch of activity records from a Windows client.
     Requires Bearer token authentication.
+    Saves to both SQL database and dedicated machine disk storage.
     """
     inserted_count = 0
     records: List[ActivityRecord] = []
+    disk_items: List[dict] = []
 
     for item in payload.activities:
         # Determine category automatically if not supplied or left as Uncategorized
@@ -88,10 +92,26 @@ def ingest_activities_batch(
         )
         records.append(record)
 
+        disk_items.append({
+            "client_id": payload.client_id,
+            "start_time": st.isoformat() + "Z",
+            "end_time": et.isoformat() + "Z",
+            "duration_seconds": float(item.duration_seconds),
+            "process_name": item.process_name,
+            "window_title": item.window_title,
+            "category": cat,
+            "is_idle": bool(item.is_idle),
+        })
+
     if records:
         db.add_all(records)
         db.commit()
         inserted_count = len(records)
+
+    # Save to dedicated machine storage on Railway disk
+    if disk_items:
+        client_ip = request.client.host if request.client else ""
+        machine_storage.record_activities(payload.client_id, disk_items, client_ip=client_ip)
 
     return BatchActivityResponse(
         status="success",

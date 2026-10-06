@@ -10,11 +10,13 @@
 The **Windows Activity Tracker** is built specifically for individuals who want complete ownership and visibility into their computer usage and work productivity without exposing sensitive information to proprietary third-party clouds.
 
 ### Core Highlights
+- **Instant Capture & Immediate Push**: Captures your current active window and pushes it to Railway within the very first second of launch—zero waiting time!
+- **Machine-Specific Partitioned Storage**: Automatically allocates an isolated storage directory on Railway's disk for each connected machine (`data/machines/{machine_name}/`), containing raw JSONL streams, machine metadata, and daily text activity logs.
 - **Native Windows Monitoring (Win32 API)**: Tracks foreground window process names, window titles, active durations, and detects idle/AFK states via native `GetLastInputInfo` (no bulky browser extensions required).
-- **Client-Side Privacy Protection**: Sanitizes all window titles **before** data touches disk or the network. Automatically strips passwords, credit cards, emails, auth tokens, and private/incognito browsing markers. Supports custom process ignore lists (e.g., password managers like 1Password, KeePass).
-- **Offline-First SQLite Buffer**: If your laptop is offline, disconnected from Wi-Fi, or the Railway backend is temporarily unreachable, events buffer locally in SQLite with zero data loss. Batches synchronize automatically once the network is restored.
-- **Self-Hosted Railway Backend**: Built with **FastAPI** and **SQLAlchemy**, supporting SQLite or managed PostgreSQL with dynamic Railway port routing.
-- **Interactive Productivity Dashboard**: Built-in, responsive dark-mode dashboard with **Chart.js** visualizations for hourly timelines, category distribution, top applications ranking, and searchable activity streams.
+- **Client-Side Privacy Protection**: Sanitizes all window titles **before** data touches disk or the network (or pass `--raw-mode` to record 100% exact raw titles).
+- **Offline-First SQLite Buffer**: If your laptop is offline, events buffer locally in SQLite with zero data loss and sync automatically when network is restored.
+- **Self-Hosted Railway Backend**: Built with **FastAPI**, **SQLAlchemy** (PostgreSQL/SQLite), and on-disk partitioned storage.
+- **Interactive Productivity Dashboard**: Built-in, responsive dark-mode dashboard with **Chart.js** visualizations and a dedicated **Machine Partitions** overview.
 - **Railway Ready**: Pre-configured with `Dockerfile`, `railway.toml`, `Procfile`, and automated healthcheck probes.
 
 ---
@@ -27,7 +29,7 @@ The **Windows Activity Tracker** is built specifically for individuals who want 
 │                                                             │
 │  ┌───────────────────┐        ┌──────────────────────────┐  │
 │  │   Win32 Monitor   │ ────►  │      Privacy Engine      │  │
-│  │ (Active & Idle)   │        │ (Redaction & Ignore List)│  │
+│  │ (Active & Idle)   │        │ (Raw Mode / Redactions)  │  │
 │  └───────────────────┘        └────────────┬─────────────┘  │
 │                                            │                │
 │                                            ▼                │
@@ -35,7 +37,7 @@ The **Windows Activity Tracker** is built specifically for individuals who want 
 │                              │   Local SQLite Buffer     │  │
 │                              │   (~/.win_activity_tracker)│  │
 │                              └─────────────┬─────────────┘  │
-│                                            │ (Bearer Auth)  │
+│                                            │ (Instant & Auto)
 │                                            ▼                │
 │                              ┌───────────────────────────┐  │
 │                              │    Batch Sync Engine      │  │
@@ -47,18 +49,20 @@ The **Windows Activity Tracker** is built specifically for individuals who want 
 │                   RAILWAY BACKEND SERVER                    │
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │ FastAPI App (Health, Activities, Analytics API)       │  │
-│  └───────────┬───────────────────────────────┬───────────┘  │
-│              │                               │              │
-│              ▼                               ▼              │
-│  ┌─────────────────────────┐   ┌─────────────────────────┐  │
-│  │ Auto-Categorizer Engine │   │ SQLAlchemy Persistence  │  │
-│  │ (Dev, Office, Media...) │   │ (SQLite / PostgreSQL)   │  │
-│  └─────────────────────────┘   └─────────────────────────┘  │
-│              │                                              │
+│  │ FastAPI App (Health, Activities, Machines, Analytics) │  │
+│  └───────────┬───────────────────────┬───────────────────┘  │
+│              │                       │                      │
+│              ▼                       ▼                      │
+│  ┌───────────────────────┐   ┌───────────────────────────┐  │
+│  │ SQLAlchemy Database   │   │ Machine Disk Partitions   │  │
+│  │ (Postgres / SQLite)   │   │ (data/machines/{PC_NAME}/)│  │
+│  └───────────────────────┘   │ - machine_info.json       │  │
+│              │               │ - activities.jsonl        │  │
+│              │               │ - daily/YYYY-MM-DD.log    │  │
+│              │               └───────────────────────────┘  │
 │              ▼                                              │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │ Single-Page Web Dashboard (Chart.js / Responsive UI)  │  │
+│  │ Web Dashboard UI (Timeline, Stats, Machines Table)    │  │
 │  └───────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```

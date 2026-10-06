@@ -185,12 +185,49 @@ class ActivityTracker:
             pass
 
     def run(self) -> None:
-        """Start tracking loop."""
+        """Start tracking loop with immediate startup capture and instant push."""
         self._running = True
         print(f"[Tracker] Started activity tracker for client '{self.config.client_id}'")
         print(f"[Tracker] Server: {self.config.server_url}")
         print(f"[Tracker] Local SQLite buffer: {self.config.db_path}")
         print(f"[Tracker] Idle threshold: {self.config.idle_threshold_seconds}s | Poll: {self.config.poll_interval_seconds}s")
+
+        # 1. INSTANT INITIAL CAPTURE & IMMEDIATE SYNC
+        now = time.time()
+        initial_snap = self.monitor.snapshot()
+        sanitized_title, _ = self.privacy.sanitize_title(
+            initial_snap.window_title, initial_snap.process_name
+        )
+        proc = initial_snap.process_name or "System"
+        title = sanitized_title or "Active Window"
+        now_iso = datetime.fromtimestamp(now, tz=timezone.utc).isoformat()
+
+        initial_event = ActivityEvent(
+            client_id=self.config.client_id,
+            start_time=now_iso,
+            end_time=now_iso,
+            duration_seconds=1.0,
+            process_name=proc,
+            window_title=title,
+            category="Startup",
+            is_idle=initial_snap.is_idle,
+        )
+        self.buffer.insert(initial_event)
+        print(f"[*] Đang đẩy ngay hoạt động ban đầu lên Railway: [{proc}] '{title[:40]}'...")
+        try:
+            self.sync_client.sync_pending(self.buffer, batch_size=self.config.sync_batch_size)
+            print("[*] Đã đẩy ngay hoạt động ban đầu lên Railway thành công!")
+        except Exception as e:
+            print(f"[!] Lỗi kết nối ban đầu (sẽ tự động thử lại): {e}")
+
+        # Start continuous tracking
+        self._start_new_interval(
+            process_name=proc,
+            window_title=title,
+            is_idle=initial_snap.is_idle,
+            category="Uncategorized",
+            timestamp=now,
+        )
 
         try:
             while self._running:

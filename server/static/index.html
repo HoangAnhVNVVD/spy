@@ -135,6 +135,35 @@
         </div>
       </section>
 
+      <!-- Connected Machines & Disk Storage -->
+      <section class="content-card table-section" style="margin-bottom: 2rem;">
+        <div class="card-header table-header">
+          <div>
+            <h3>🖥️ Vùng nhớ ổ đĩa từng máy (Machine Disk Partitions)</h3>
+            <p class="section-sub">Railway tự động phân vùng một thư mục riêng biệt cho từng máy lưu theo tên máy</p>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tên máy tính (Machine Name)</th>
+                <th>Thư mục lưu trên ổ đĩa Railway</th>
+                <th>Lần cuối hoạt động</th>
+                <th>Tổng bản ghi</th>
+                <th>Dung lượng đĩa</th>
+                <th>Ứng dụng gần nhất</th>
+              </tr>
+            </thead>
+            <tbody id="machinesTableBody">
+              <tr>
+                <td colspan="6" class="text-center empty-state">Đang tải danh sách vùng nhớ máy tính...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <!-- Activity Log Table -->
       <section class="content-card table-section">
         <div class="card-header table-header">

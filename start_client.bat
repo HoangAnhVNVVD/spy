@@ -1,21 +1,29 @@
 @echo off
 chcp 65001 > nul
 echo ========================================================
-echo    Khởi động Windows Activity Tracker Client
+echo    Windows Activity Tracker - Bấm chạy là đẩy ngay Railway
 echo ========================================================
+echo.
 
-:: Cấu hình địa chỉ server Railway và token của bạn ở đây:
-set SERVER_URL=http://localhost:8000
+if exist "server_url.txt" (
+    set /p SERVER_URL=<server_url.txt
+) else (
+    echo Vui lòng dán link domain Railway của bạn (ví dụ: https://spy-production.up.railway.app):
+    set /p SERVER_URL="Link Railway: "
+    echo !SERVER_URL!
+    echo %SERVER_URL%>server_url.txt
+)
+
+if "%SERVER_URL%"=="" set SERVER_URL=http://localhost:8000
 set API_TOKEN=default-secret-token
 
-:: Nếu bạn đã có domain Railway, hãy sửa dòng trên thành:
-:: set SERVER_URL=https://<your-app>.up.railway.app
-:: set API_TOKEN=your-token-here
-
-echo [*] Đang chạy Tracker ở chế độ Raw Mode...
+echo [*] Đang chụp và đẩy ngay lập tức hoạt động máy tính lên Railway...
 echo Server mục tiêu: %SERVER_URL%
-echo Nhấn Ctrl+C để dừng hoạt động nếu muốn.
 echo.
 
 python -m client.cli run --raw-mode --server-url "%SERVER_URL%" --api-token "%API_TOKEN%"
+if %errorlevel% neq 0 (
+    echo [*] Chạy với Standalone Client (Zero-Dependency)...
+    python standalone_client.py --raw-mode --server-url "%SERVER_URL%" --api-token "%API_TOKEN%"
+)
 pause

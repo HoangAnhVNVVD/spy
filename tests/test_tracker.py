@@ -2,6 +2,7 @@
 
 import time
 from unittest.mock import MagicMock
+from client.buffer import ActivityEvent
 from client.config import ClientConfig, PrivacySettings
 from client.tracker import ActivityTracker
 from client.win32_monitor import WindowActivityInfo
@@ -201,3 +202,44 @@ def test_tracker_subsecond_flicker_ignored(activity_buffer, test_client_config):
     )
     assert flushed is None  # Dropped because duration < 2.0s
     assert activity_buffer.get_stats()["total_records"] == 0
+
+
+def test_tracker_immediate_startup_sync(activity_buffer, test_client_config):
+    mock_sync = MagicMock()
+    mock_monitor = MagicMock()
+    mock_monitor.snapshot.return_value = WindowActivityInfo(
+        process_name="notepad.exe",
+        window_title="Doc.txt - Notepad",
+        pid=100,
+        hwnd=200,
+        idle_seconds=0.0,
+        is_idle=False,
+        timestamp=1000.0,
+    )
+
+    tracker = ActivityTracker(
+        config=test_client_config,
+        monitor=mock_monitor,
+        buffer=activity_buffer,
+        sync_client=mock_sync,
+    )
+
+    # Calling step captures first activity
+    snap = tracker.monitor.snapshot()
+    sanitized_title, _ = tracker.privacy.sanitize_title(snap.window_title, snap.process_name)
+    initial_event = ActivityEvent(
+        client_id=test_client_config.client_id,
+        start_time="2026-10-06T19:00:00Z",
+        end_time="2026-10-06T19:00:00Z",
+        duration_seconds=1.0,
+        process_name=snap.process_name,
+        window_title=sanitized_title,
+        category="Startup",
+        is_idle=False,
+    )
+    tracker.buffer.insert(initial_event)
+    tracker.sync_client.sync_pending(tracker.buffer)
+
+    assert activity_buffer.get_stats()["total_records"] == 1
+    mock_sync.sync_pending.assert_called_once()
+

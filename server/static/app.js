@@ -380,12 +380,48 @@ function setupEventListeners() {
   }
 }
 
+async function loadMachines() {
+  const tbody = document.getElementById('machinesTableBody');
+  if (!tbody) return;
+  try {
+    const res = await fetch('/api/v1/machines', { headers: getAuthHeaders() });
+    if (!res.ok) return;
+    const machines = await res.json();
+    if (!machines || machines.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center empty-state">Chưa có máy tính nào kết nối. Hãy chạy tracker trên máy tính để tạo vùng nhớ!</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = machines.map(m => {
+      const lastSeen = m.last_seen ? new Date(m.last_seen).toLocaleTimeString() : 'N/A';
+      const mName = escapeHtml(m.machine_name || m.client_id || 'Unknown');
+      const folder = escapeHtml(m.storage_folder || m.client_id || 'Unknown');
+      const records = m.total_records || 0;
+      const mb = m.disk_mb || 0;
+      const app = escapeHtml(m.last_active_app || '-');
+      const title = escapeHtml(m.last_active_title ? m.last_active_title.slice(0, 35) : '');
+      return `
+        <tr>
+          <td><strong style="color:#60a5fa">💻 ${mName}</strong></td>
+          <td><code style="background:#1e293b;padding:2px 6px;border-radius:4px;color:#38bdf8">data/machines/${folder}/</code></td>
+          <td>${lastSeen}</td>
+          <td><span class="badge" style="background:#1e3a8a;color:#93c5fd">${records} bản ghi</span></td>
+          <td><span style="color:#a7f3d0">${mb} MB</span></td>
+          <td><span class="proc-name">${app}</span> ${title}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    console.error('Failed to load machines:', e);
+  }
+}
+
 async function refreshAll() {
   await Promise.all([
     checkHealth(),
     loadSummary(),
     loadTimeline(),
-    loadActivityLog()
+    loadActivityLog(),
+    loadMachines()
   ]);
 }
 
