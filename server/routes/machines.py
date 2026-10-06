@@ -22,6 +22,32 @@ def list_connected_machines():
 
 
 @router.get(
+    "/live",
+    response_model=List[Dict[str, Any]],
+    dependencies=[Depends(optional_auth_for_reads)],
+)
+def get_all_machines_live_tasks():
+    """Retrieve real-time taskbar applications for all connected machines."""
+    return machine_storage.get_all_live_tasks()
+
+
+@router.get(
+    "/{client_id}/live",
+    response_model=Dict[str, Any],
+    dependencies=[Depends(optional_auth_for_reads)],
+)
+def get_machine_live_tasks(client_id: str):
+    """Retrieve real-time taskbar applications for a specific machine."""
+    live = machine_storage.get_live_tasks(client_id)
+    if not live:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No live taskbar data found for machine '{client_id}'",
+        )
+    return live
+
+
+@router.get(
     "/{client_id}",
     response_model=Dict[str, Any],
     dependencies=[Depends(optional_auth_for_reads)],

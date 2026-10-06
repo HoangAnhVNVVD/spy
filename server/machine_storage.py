@@ -176,6 +176,111 @@ class MachineStorageManager:
 
         return lines[-max_lines:]
 
+    def record_live_tasks(
+        self,
+        client_id: str,
+        tasks: List[Dict[str, Any]],
+        client_ip: str = "",
+    ) -> Dict[str, Any]:
+        """Save live open taskbar tasks to the machine's partition and update last_seen."""
+        machine_dir = self.get_machine_dir(client_id)
+        now_utc = datetime.now(timezone.utc)
+        now_iso = now_utc.isoformat()
+
+        live_data = {
+            "client_id": client_id,
+            "last_updated": now_iso,
+            "is_online": True,
+            "task_count": len(tasks),
+            "client_ip": client_ip,
+            "tasks": tasks,
+        }
+
+        # Write current_tasks.json
+        tasks_file = machine_dir / "current_tasks.json"
+        with open(tasks_file, "w", encoding="utf-8") as f:
+            json.dump(live_data, f, indent=2, ensure_ascii=False)
+
+        # Update machine_info.json last_seen and last_active_app
+        info_path = machine_dir / "machine_info.json"
+        info = {
+            "client_id": client_id,
+            "machine_name": client_id,
+            "storage_folder": str(machine_dir.name),
+            "storage_path": str(machine_dir.resolve()),
+            "first_seen": now_iso,
+            "last_seen": now_iso,
+            "last_ip": client_ip,
+            "total_records": 0,
+            "last_active_app": "",
+            "last_active_title": "",
+        }
+        if info_path.exists():
+            try:
+                with open(info_path, "r", encoding="utf-8") as inf:
+                    existing = json.load(inf)
+                    info.update(existing)
+            except Exception:
+                pass
+
+        info["last_seen"] = now_iso
+        if client_ip:
+            info["last_ip"] = client_ip
+
+        # Find focused task if any
+        focused_task = next((t for t in tasks if t.get("is_focused")), None)
+        if focused_task:
+            info["last_active_app"] = focused_task.get("process_name", "")
+            info["last_active_title"] = focused_task.get("window_title", "")
+        elif tasks:
+            info["last_active_app"] = tasks[0].get("process_name", "")
+            info["last_active_title"] = tasks[0].get("window_title", "")
+
+        with open(info_path, "w", encoding="utf-8") as inf:
+            json.dump(info, inf, indent=2, ensure_ascii=False)
+
+        return live_data
+
+    def get_live_tasks(self, client_id: str) -> Optional[Dict[str, Any]]:
+        """Get current open tasks for a specific machine."""
+        machine_dir = self.get_machine_dir(client_id)
+        tasks_file = machine_dir / "current_tasks.json"
+        if not tasks_file.exists():
+            return None
+        try:
+            with open(tasks_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            last_dt = datetime.fromisoformat(data["last_updated"])
+            now_utc = datetime.now(timezone.utc)
+            diff_sec = (now_utc - last_dt).total_seconds()
+            data["is_online"] = diff_sec <= 15.0
+            return data
+        except Exception:
+            return None
+
+    def get_all_live_tasks(self) -> List[Dict[str, Any]]:
+        """Get live task states across all connected machines."""
+        results: List[Dict[str, Any]] = []
+        if not self.base_dir.exists():
+            return results
+
+        now_utc = datetime.now(timezone.utc)
+        for entry in sorted(self.base_dir.iterdir()):
+            if entry.is_dir():
+                tasks_file = entry / "current_tasks.json"
+                if tasks_file.exists():
+                    try:
+                        with open(tasks_file, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                        last_dt = datetime.fromisoformat(data["last_updated"])
+                        diff_sec = (now_utc - last_dt).total_seconds()
+                        data["is_online"] = diff_sec <= 15.0
+                        results.append(data)
+                    except Exception:
+                        pass
+        results.sort(key=lambda x: (1 if x.get("is_online") else 0, x.get("last_updated", "")), reverse=True)
+        return results
+
 
 # Singleton instance
 machine_storage = MachineStorageManager()

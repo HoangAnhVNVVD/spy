@@ -415,13 +415,86 @@ async function loadMachines() {
   }
 }
 
+async function loadLiveTasks() {
+  const container = document.getElementById('liveTaskbarList');
+  const mBadge = document.getElementById('liveMachineBadge');
+  const cBadge = document.getElementById('liveCountBadge');
+  const tBadge = document.getElementById('liveTimeBadge');
+  if (!container) return;
+
+  try {
+    const res = await fetch('/api/v1/machines/live', { headers: getAuthHeaders() });
+    if (!res.ok) return;
+    const machines = await res.json();
+
+    if (!machines || machines.length === 0) {
+      if (mBadge) mBadge.innerText = '💻 Chưa có máy kết nối';
+      if (cBadge) cBadge.innerText = '0 tasks';
+      return;
+    }
+
+    // Select primary machine (online first, or latest)
+    const machine = machines[0];
+    const onlineTag = machine.is_online ? '🟢 Online' : '⚪ Offline';
+    const lastTime = machine.last_updated ? new Date(machine.last_updated).toLocaleTimeString() : 'N/A';
+    const tasks = machine.tasks || [];
+
+    if (mBadge) mBadge.innerHTML = `💻 <strong>${escapeHtml(machine.client_id)}</strong> (${onlineTag})`;
+    if (cBadge) cBadge.innerText = `${tasks.length} tasks taskbar`;
+    if (tBadge) tBadge.innerText = `Cập nhật: ${lastTime}`;
+
+    if (tasks.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state" style="grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 2rem;">
+          Không có ứng dụng nào trên thanh taskbar lúc ${lastTime}.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = tasks.map(t => {
+      const isFocused = Boolean(t.is_focused);
+      const borderStyle = isFocused
+        ? 'border: 1.5px solid #10b981; background: rgba(16, 185, 129, 0.1); box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);'
+        : 'border: 1px solid #334155; background: rgba(30, 41, 59, 0.7);';
+      const badgeHtml = isFocused
+        ? `<span style="background:rgba(16,185,129,0.25); color:#34d399; border:1px solid rgba(16,185,129,0.5); padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:700;">🟢 ĐANG SỬ DỤNG [FOCUS]</span>`
+        : `<span style="background:rgba(148,163,184,0.15); color:#94a3b8; border:1px solid rgba(148,163,184,0.3); padding:2px 8px; border-radius:12px; font-size:0.75rem;">⚪ ĐANG MỞ [OPEN]</span>`;
+
+      const title = escapeHtml(t.window_title || '(Không có tiêu đề)');
+      const proc = escapeHtml(t.process_name || 'unknown.exe');
+      const pidText = t.pid ? `PID: ${t.pid}` : '';
+
+      return `
+        <div style="border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:6px; transition: all 0.2s ease; ${borderStyle}">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px; overflow:hidden;">
+              <span style="font-size:1.1rem;">💻</span>
+              <strong style="color:#f8fafc; font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${proc}</strong>
+              <span style="font-size:0.75rem; color:#64748b;">${pidText}</span>
+            </div>
+            <div>${badgeHtml}</div>
+          </div>
+          <div style="font-size:0.85rem; color:#cbd5e1; line-height:1.3; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;" title="${title}">
+            ${title}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.error('Failed to load live taskbar tasks:', err);
+  }
+}
+
 async function refreshAll() {
   await Promise.all([
     checkHealth(),
     loadSummary(),
     loadTimeline(),
     loadActivityLog(),
-    loadMachines()
+    loadMachines(),
+    loadLiveTasks()
   ]);
 }
 
@@ -429,6 +502,8 @@ async function refreshAll() {
 window.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
   refreshAll();
-  // Auto-refresh every 30 seconds
+  // Auto-refresh summary, logs and machines every 30 seconds
   setInterval(refreshAll, 30000);
+  // Real-time live taskbar updates every 3 seconds (3000ms)
+  setInterval(loadLiveTasks, 3000);
 });

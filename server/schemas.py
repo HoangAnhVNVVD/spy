@@ -18,10 +18,21 @@ class ActivityItemIn(BaseModel):
     is_idle: bool = False
 
 
+class OpenTaskItem(BaseModel):
+    """Schema for currently open taskbar application."""
+    process_name: str
+    window_title: str = ""
+    pid: Optional[int] = None
+    is_focused: bool = False
+    hwnd: Optional[int] = None
+
+
 class BatchActivityRequest(BaseModel):
     """Batch ingestion payload from client."""
     client_id: str
-    activities: List[ActivityItemIn]
+    activities: List[ActivityItemIn] = []
+    open_tasks: Optional[List[OpenTaskItem]] = None
+    timestamp: Optional[str] = None
 
 
 class BatchActivityResponse(BaseModel):
@@ -29,6 +40,17 @@ class BatchActivityResponse(BaseModel):
     status: str
     count: int
     client_id: str
+    open_tasks_count: Optional[int] = None
+
+
+class MachineLiveStatus(BaseModel):
+    """Real-time taskbar state for a machine."""
+    client_id: str
+    last_updated: str
+    is_online: bool
+    task_count: int
+    client_ip: Optional[str] = None
+    tasks: List[OpenTaskItem] = []
 
 
 class ActivityItemOut(BaseModel):

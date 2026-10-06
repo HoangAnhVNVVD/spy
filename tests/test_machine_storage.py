@@ -130,3 +130,62 @@ def test_machines_api_endpoints(api_client):
     assert logs_data["client_id"] == "TEST-PC-API-01"
     assert len(logs_data["lines"]) >= 1
     assert any("chrome.exe" in line for line in logs_data["lines"])
+
+
+def test_live_tasks_storage_and_api(api_client):
+    payload = {
+        "client_id": "TEST-LIVE-PC",
+        "activities": [],
+        "open_tasks": [
+            {
+                "process_name": "chrome.exe",
+                "window_title": "Google Search",
+                "pid": 1234,
+                "is_focused": False,
+            },
+            {
+                "process_name": "Antigravity.exe",
+                "window_title": "Editor",
+                "pid": 5678,
+                "is_focused": True,
+            },
+            {
+                "process_name": "powershell.exe",
+                "window_title": "Terminal",
+                "pid": 9999,
+                "is_focused": False,
+            },
+        ],
+    }
+
+    res = api_client.post(
+        "/api/v1/activities/batch",
+        json=payload,
+        headers={"Authorization": "Bearer test-secret-token"},
+    )
+    assert res.status_code == 201
+    data = res.json()
+    assert data["open_tasks_count"] == 3
+
+    # Query all live tasks
+    live_res = api_client.get("/api/v1/machines/live")
+    assert live_res.status_code == 200
+    all_live = live_res.json()
+    assert isinstance(all_live, list)
+    target_live = next((m for m in all_live if m["client_id"] == "TEST-LIVE-PC"), None)
+    assert target_live is not None
+    assert target_live["task_count"] == 3
+    assert target_live["is_online"] is True
+    assert len(target_live["tasks"]) == 3
+    procs = {t["process_name"] for t in target_live["tasks"]}
+    assert "chrome.exe" in procs
+    assert "Antigravity.exe" in procs
+    assert "powershell.exe" in procs
+
+    # Query specific machine live tasks
+    m_live_res = api_client.get("/api/v1/machines/TEST-LIVE-PC/live")
+    assert m_live_res.status_code == 200
+    m_data = m_live_res.json()
+    assert m_data["client_id"] == "TEST-LIVE-PC"
+    assert m_data["task_count"] == 3
+

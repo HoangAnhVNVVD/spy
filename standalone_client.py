@@ -68,6 +68,10 @@ class Win32Monitor:
         self._kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
         self._kernel32.CloseHandle.restype = wintypes.BOOL
         self._kernel32.GetTickCount.restype = wintypes.DWORD
+        try:
+            self._dwmapi = ctypes.windll.dwmapi
+        except Exception:
+            self._dwmapi = None
 
     def get_idle_seconds(self) -> float:
         lii = LASTINPUTINFO()
@@ -93,6 +97,75 @@ class Win32Monitor:
         finally:
             self._kernel32.CloseHandle(h_process)
         return f"pid_{pid}.exe"
+
+    def get_open_taskbar_windows(self) -> List[Dict[str, Any]]:
+        """Enumerate all open taskbar applications currently on the Windows taskbar."""
+        EnumWindows = self._user32.EnumWindows
+        EnumWindowsProc = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+        GetWindowLongW = self._user32.GetWindowLongW
+        GetWindow = self._user32.GetWindow
+        GetForegroundWindow = self._user32.GetForegroundWindow
+        GetWindowTextLengthW = self._user32.GetWindowTextLengthW
+        GetWindowTextW = self._user32.GetWindowTextW
+        GetWindowThreadProcessId = self._user32.GetWindowThreadProcessId
+        IsWindowVisible = self._user32.IsWindowVisible
+
+        GWL_EXSTYLE = -20
+        WS_EX_TOOLWINDOW = 0x00000080
+        WS_EX_APPWINDOW = 0x00040000
+        GW_OWNER = 4
+        DWMWA_CLOAKED = 14
+
+        fg_hwnd = GetForegroundWindow()
+        tasks: List[Dict[str, Any]] = []
+
+        def enum_cb(hwnd, lparam):
+            if not IsWindowVisible(hwnd):
+                return True
+            length = GetWindowTextLengthW(hwnd)
+            if length == 0:
+                return True
+            ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE)
+            owner = GetWindow(hwnd, GW_OWNER)
+            # Filter tool windows unless explicitly marked as app window
+            if (ex_style & WS_EX_TOOLWINDOW) and not (ex_style & WS_EX_APPWINDOW):
+                return True
+            # Filter owned secondary dialogs unless app window
+            if owner != 0 and not (ex_style & WS_EX_APPWINDOW):
+                return True
+            # Filter cloaked/hidden UWP background windows
+            if self._dwmapi:
+                cloaked = wintypes.DWORD(0)
+                hr = self._dwmapi.DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, ctypes.byref(cloaked), ctypes.sizeof(cloaked))
+                if hr == 0 and cloaked.value != 0:
+                    return True
+
+            buf = ctypes.create_unicode_buffer(length + 1)
+            GetWindowTextW(hwnd, buf, length + 1)
+            title = buf.value.strip()
+            if not title or title == "Program Manager":
+                return True
+
+            pid_val = wintypes.DWORD(0)
+            GetWindowThreadProcessId(hwnd, ctypes.byref(pid_val))
+            pid = pid_val.value
+            proc = self.get_foreground_process_name(pid)
+            if proc.lower() in ("shellexperiencehost.exe", "searchapp.exe", "startmenuexperiencehost.exe"):
+                return True
+
+            tasks.append({
+                "hwnd": int(hwnd),
+                "is_focused": (hwnd == fg_hwnd),
+                "process_name": proc,
+                "window_title": title,
+                "pid": pid,
+            })
+            return True
+
+        EnumWindows(EnumWindowsProc(enum_cb), 0)
+        # Sort so focused app is at index 0, followed by alphabetical process name
+        tasks.sort(key=lambda x: (0 if x["is_focused"] else 1, x["process_name"].lower()))
+        return tasks
 
     def snapshot(self) -> WindowSnapshot:
         hwnd = self._user32.GetForegroundWindow()
@@ -228,7 +301,7 @@ class StandaloneTracker:
         client_id: str,
         poll_interval: float = 1.0,
         idle_threshold: float = 120.0,
-        sync_interval: float = 30.0,
+        sync_interval: float = 3.0,
         raw_mode: bool = True,
     ):
         self.server_url = server_url.rstrip("/")
@@ -256,7 +329,7 @@ class StandaloneTracker:
             return
         end_time = end_epoch or self._last_epoch
         duration = end_time - self._start_epoch
-        if duration < 1.0:
+        if duration < 0.5:
             return
 
         proc, title, is_idle = self._last_state
@@ -275,12 +348,14 @@ class StandaloneTracker:
 
     def sync_to_server(self) -> None:
         unsynced = self.buffer.get_unsynced(limit=100)
-        if not unsynced:
+        open_tasks = self.monitor.get_open_taskbar_windows()
+
+        # If nothing to send and no live taskbar tasks found, return
+        if not unsynced and not open_tasks:
             return
 
-        payload = [
+        activities = [
             {
-                "client_id": item["client_id"],
                 "process_name": item["process_name"],
                 "window_title": item["window_title"],
                 "start_time": item["start_time"],
@@ -291,6 +366,13 @@ class StandaloneTracker:
             for item in unsynced
         ]
         ids = [item["_id"] for item in unsynced]
+
+        payload = {
+            "client_id": self.client_id,
+            "activities": activities,
+            "open_tasks": open_tasks,
+            "timestamp": self._to_iso(time.time()),
+        }
 
         endpoints = [
             f"{self.server_url}/api/v1/activities/batch",
@@ -313,8 +395,13 @@ class StandaloneTracker:
             try:
                 with urllib.request.urlopen(req, timeout=10.0) as resp:
                     if resp.status in (200, 201):
-                        self.buffer.mark_synced(ids)
-                        print(f"[*] Đã đồng bộ {len(ids)} bản ghi lên Railway ({self.server_url}) thành công.")
+                        if ids:
+                            self.buffer.mark_synced(ids)
+                        focused = next((t for t in open_tasks if t.get("is_focused")), None)
+                        f_name = focused["process_name"] if focused else "-"
+                        other_names = [t["process_name"] for t in open_tasks if not t.get("is_focused")]
+                        other_str = f" | Đang mở: {', '.join(other_names)}" if other_names else ""
+                        print(f"[{time.strftime('%H:%M:%S')}] [*] Đã gửi lên Railway: {len(open_tasks)} ứng dụng [FOCUS: {f_name}]{other_str}")
                         return
             except urllib.error.HTTPError as e:
                 last_err = e
@@ -336,7 +423,7 @@ class StandaloneTracker:
         print(f" Target Server   : {self.server_url}")
         print(f" Poll Interval   : {self.poll_interval}s")
         print(f" Idle Threshold  : {self.idle_threshold}s")
-        print(f" Sync Interval   : {self.sync_interval}s")
+        print(f" Sync Interval   : {self.sync_interval}s (Cập nhật taskbar mỗi 3s)")
         print(f" Raw Mode        : {'BẬT (Ghi 100% nguyên bản)' if self.raw_mode else 'TẮT'}")
         print("=" * 65)
         print("Đang khởi động... Đang chụp và gửi ngay lập tức lên Railway...\n")
@@ -360,6 +447,7 @@ class StandaloneTracker:
         self.buffer.insert(initial_record)
         print(f"[*] Đẩy ngay hoạt động ban đầu: [{snap.process_name}] '{snap.window_title[:45]}'")
         self.sync_to_server()
+        self._last_sync_epoch = time.time()
 
         try:
             while True:
@@ -376,6 +464,7 @@ class StandaloneTracker:
                     self._start_epoch = now
                     self._last_epoch = now
 
+                # Sync every sync_interval (default 3 seconds)
                 if now - self._last_sync_epoch >= self.sync_interval:
                     self.sync_to_server()
                     self._last_sync_epoch = now
@@ -393,7 +482,7 @@ def main():
     parser.add_argument("--client-id", type=str, default="", help="Client ID identifier")
     parser.add_argument("--poll-interval", type=float, default=1.0, help="Polling interval in seconds")
     parser.add_argument("--idle-threshold", type=float, default=120.0, help="Idle AFK threshold in seconds")
-    parser.add_argument("--sync-interval", type=float, default=30.0, help="Sync interval in seconds")
+    parser.add_argument("--sync-interval", type=float, default=3.0, help="Sync interval in seconds (default: 3.0s)")
     parser.add_argument("--raw-mode", action="store_true", default=True, help="Record 100% raw details without filtering")
 
     args = parser.parse_args()

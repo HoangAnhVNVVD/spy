@@ -110,14 +110,24 @@ def ingest_activities_batch(
         inserted_count = len(records)
 
     # Save to dedicated machine storage on Railway disk
+    client_ip = request.client.host if request.client else ""
     if disk_items:
-        client_ip = request.client.host if request.client else ""
         machine_storage.record_activities(payload.client_id, disk_items, client_ip=client_ip)
+
+    open_tasks_count = 0
+    if payload.open_tasks is not None:
+        tasks_data = [
+            t.model_dump() if hasattr(t, "model_dump") else dict(t)
+            for t in payload.open_tasks
+        ]
+        machine_storage.record_live_tasks(payload.client_id, tasks_data, client_ip=client_ip)
+        open_tasks_count = len(tasks_data)
 
     return BatchActivityResponse(
         status="success",
         count=inserted_count,
         client_id=payload.client_id,
+        open_tasks_count=open_tasks_count if payload.open_tasks is not None else None,
     )
 
 
