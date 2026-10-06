@@ -24,7 +24,12 @@ class ServerSettings:
             db_url = db_url.replace("postgres://", "postgresql://", 1)
 
         self.DATABASE_URL = db_url
-        self.API_KEY = os.getenv("API_KEY") or os.getenv("API_TOKEN") or "default-secret-token"
+        self.API_KEY = (
+            os.getenv("API_AUTH_TOKEN")
+            or os.getenv("API_KEY")
+            or os.getenv("API_TOKEN")
+            or "default-secret-token"
+        )
         self.REQUIRE_AUTH_FOR_READS = (
             os.getenv("REQUIRE_AUTH_FOR_READS", "false").lower() in ("1", "true", "yes")
         )

